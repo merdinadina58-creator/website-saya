@@ -59,4 +59,33 @@ export const apps: AppItem[] = [
     icon: "Kanban",
     color: "text-orange-500",
   },
+  // === CONTOH: Tambahkan aplikasi Anda di bawah ini ===
+  // {
+  //   name: "Notion",
+  //   url: "https://www.notion.so/your-workspace",
+  //   description: "Dokumentasi & catatan tim",
+  //   icon: "BookOpen",
+  //   color: "text-neutral-400",
+  // },
+  // {
+  //   name: "Figma",
+  //   url: "https://www.figma.com/your-team",
+  //   description: "Desain & prototipe",
+  //   icon: "PenTool",
+  //   color: "text-pink-500",
+  // },
+  // {
+  //   name: "GitHub",
+  //   url: "https://github.com/your-org",
+  //   description: "Repositori kode",
+  //   icon: "Github",
+  //   color: "text-neutral-300",
+  // },
+  // {
+  //   name: "Slack",
+  //   url: "https://your-team.slack.com",
+  //   description: "Komunikasi tim",
+  //   icon: "Hash",
+  //   color: "text-green-500",
+  // },
 ];

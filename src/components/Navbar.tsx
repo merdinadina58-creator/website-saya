@@ -16,6 +16,10 @@ import {
   ChevronDown,
   ExternalLink,
   Grid3X3,
+  BookOpen,
+  PenTool,
+  Github,
+  Hash,
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -52,6 +56,10 @@ const iconMap: Record<string, LucideIcon> = {
   Cloud,
   MessageCircle,
   Kanban,
+  BookOpen,
+  PenTool,
+  Github,
+  Hash,
 };
 
 const emptySubscribe = () => () => {};
