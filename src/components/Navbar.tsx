@@ -168,7 +168,16 @@ export default function Navbar() {
     fetch("/api/logo")
       .then((res) => res.json())
       .then((data) => {
-        if (data.src) setLogoSrc(data.src);
+        if (data.src) {
+          // If it's a base64 data URL, check size - only use if reasonable
+          if (data.src.startsWith("data:") && data.size > 500000) {
+            // Large base64 images in img src can cause performance issues
+            // Use a smaller version or the default
+            setLogoSrc("/logo-512.png");
+          } else {
+            setLogoSrc(data.src);
+          }
+        }
       })
       .catch(() => {});
   }, []);
@@ -207,7 +216,13 @@ export default function Navbar() {
         const data = await res.json();
 
         if (res.ok) {
-          setLogoSrc(data.logo.src + "?t=" + Date.now());
+          // Handle data URL vs regular path
+          const newSrc = data.logo?.src || "/logo-512.png";
+          if (newSrc.startsWith("data:") && data.logo?.size > 500000) {
+            setLogoSrc("/logo-512.png?t=" + Date.now());
+          } else {
+            setLogoSrc(newSrc.startsWith("data:") ? newSrc : newSrc + "?t=" + Date.now());
+          }
           setLogoDialogOpen(false);
         } else {
           setLogoError(data.error || "Gagal mengupload logo");

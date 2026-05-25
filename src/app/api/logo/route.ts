@@ -1,37 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
-import { writeFile, readFile, mkdir } from "fs/promises";
-import path from "path";
-import sharp from "sharp";
-
-const DATA_DIR = path.join(process.cwd(), "data");
-const PUBLIC_DIR = path.join(process.cwd(), "public");
-const LOGO_DATA_PATH = path.join(DATA_DIR, "logo.json");
-const MAX_SIZE = 3 * 1024 * 1024; // 3MB
+import { db } from "@/lib/db";
+import { verifyAdminFromHeader } from "@/lib/auth";
 
 export async function GET() {
   try {
-    const raw = await readFile(LOGO_DATA_PATH, "utf-8");
-    const data = JSON.parse(raw);
-    return NextResponse.json(data);
+    const record = await db.siteContent.findUnique({
+      where: { key: "_logo" },
+    });
+    if (record) {
+      return NextResponse.json(JSON.parse(record.value));
+    }
   } catch {
-    return NextResponse.json({ src: "/logo-512.png" });
+    // fallback
   }
+  return NextResponse.json({ src: "/logo-512.png" });
 }
 
 export async function POST(req: NextRequest) {
-  // Auth check
-  const username = req.headers.get("x-admin-username");
-  const password = req.headers.get("x-admin-password");
-
-  try {
-    const credPath = path.join(DATA_DIR, "credentials.json");
-    const credRaw = await readFile(credPath, "utf-8");
-    const cred = JSON.parse(credRaw);
-    if (username !== cred.username || password !== cred.password) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-  } catch {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  // Auth check using the same method as content API
+  if (!(await verifyAdminFromHeader(req))) {
+    return NextResponse.json(
+      { error: "Tidak memiliki akses. Silakan login terlebih dahulu." },
+      { status: 401 }
+    );
   }
 
   try {
@@ -42,7 +33,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "File tidak ditemukan" }, { status: 400 });
     }
 
-    // Validate file size
+    // Validate file size (3MB max)
+    const MAX_SIZE = 3 * 1024 * 1024;
     if (file.size > MAX_SIZE) {
       return NextResponse.json(
         { error: `Ukuran file maksimal 3MB. File Anda: ${(file.size / 1024 / 1024).toFixed(1)}MB` },
@@ -59,51 +51,60 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Ensure directories exist
-    await mkdir(DATA_DIR, { recursive: true });
-
     const buffer = Buffer.from(await file.arrayBuffer());
-    const ext = file.type === "image/svg+xml" ? "svg" : file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "jpg";
 
-    // Save original logo
-    const logoFilename = `logo-uploaded.${ext}`;
-    const logoPath = path.join(PUBLIC_DIR, logoFilename);
-    await writeFile(logoPath, buffer);
+    // Convert to base64 and store in database
+    // This works on Vercel too since we're using the database
+    const base64 = buffer.toString("base64");
+    const dataUrl = `data:${file.type};base64,${base64}`;
 
-    let logoSrc = `/${logoFilename}`;
+    // Also try to save to public folder (works locally, silently fails on Vercel)
+    try {
+      const { writeFile, mkdir } = await import("fs/promises");
+      const path = await import("path");
+      const PUBLIC_DIR = path.join(process.cwd(), "public");
 
-    // Generate PWA icons (192x192 and 512x512) from raster images
-    if (ext !== "svg") {
+      await mkdir(PUBLIC_DIR, { recursive: true });
+
+      const ext = file.type === "image/svg+xml" ? "svg" : file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "jpg";
+      const logoFilename = `logo-uploaded.${ext}`;
+      await writeFile(path.join(PUBLIC_DIR, logoFilename), buffer);
+
+      // Try to generate PWA icons with sharp
       try {
-        await sharp(buffer)
-          .resize(192, 192, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } })
-          .png()
-          .toFile(path.join(PUBLIC_DIR, "logo-192.png"));
+        const sharp = (await import("sharp")).default;
+        if (ext !== "svg") {
+          await sharp(buffer)
+            .resize(192, 192, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } })
+            .png()
+            .toFile(path.join(PUBLIC_DIR, "logo-192.png"));
 
-        await sharp(buffer)
-          .resize(512, 512, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } })
-          .png()
-          .toFile(path.join(PUBLIC_DIR, "logo-512.png"));
-
-        logoSrc = "/logo-512.png";
-      } catch (sharpErr) {
-        console.error("Sharp resize error:", sharpErr);
-        // If sharp fails, still save the original
+          await sharp(buffer)
+            .resize(512, 512, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } })
+            .png()
+            .toFile(path.join(PUBLIC_DIR, "logo-512.png"));
+        }
+      } catch {
+        // Sharp might fail on some environments, that's OK
       }
-    } else {
-      // For SVG, copy as PWA icons too
-      await writeFile(path.join(PUBLIC_DIR, "logo-192.png"), buffer);
-      await writeFile(path.join(PUBLIC_DIR, "logo-512.png"), buffer);
+    } catch {
+      // Writing to public/ might fail on Vercel (read-only), that's OK
     }
 
-    // Save logo metadata
+    // Store logo metadata in database (always works)
     const logoData = {
-      src: logoSrc,
+      src: dataUrl,
       uploadedAt: new Date().toISOString(),
       originalName: file.name,
       size: file.size,
+      mimeType: file.type,
     };
-    await writeFile(LOGO_DATA_PATH, JSON.stringify(logoData, null, 2));
+
+    await db.siteContent.upsert({
+      where: { key: "_logo" },
+      update: { value: JSON.stringify(logoData) },
+      create: { key: "_logo", value: JSON.stringify(logoData) },
+    });
 
     return NextResponse.json({ success: true, logo: logoData });
   } catch (err) {
