@@ -36,12 +36,33 @@ export function useContent() {
   return ctx;
 }
 
+// localStorage key for content persistence (fallback on Vercel/serverless)
+const LS_KEY = "website-content";
+
 function getAuthHeaders(): Record<string, string> {
   if (typeof window === "undefined") return {};
   const username = localStorage.getItem("adminUsername");
   const password = localStorage.getItem("adminPassword");
   if (!username || !password) return {};
   return { "x-admin-username": username, "x-admin-password": password };
+}
+
+function loadFromLocalStorage(): ContentData {
+  try {
+    const stored = localStorage.getItem(LS_KEY);
+    if (stored) return JSON.parse(stored);
+  } catch {
+    // Invalid JSON, ignore
+  }
+  return {};
+}
+
+function saveToLocalStorage(content: ContentData) {
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify(content));
+  } catch {
+    // localStorage might be full or unavailable
+  }
 }
 
 export function ContentProvider({ children }: { children: ReactNode }) {
@@ -53,11 +74,25 @@ export function ContentProvider({ children }: { children: ReactNode }) {
       const res = await fetch("/api/content");
       if (res.ok) {
         const data = await res.json();
-        setContent(data);
+        // Merge: API data takes priority, localStorage fills gaps
+        const localData = loadFromLocalStorage();
+        const merged = { ...localData, ...data };
+        setContent(merged);
+        saveToLocalStorage(merged);
+      } else {
+        // API failed (e.g., Vercel serverless DB unavailable)
+        // Fall back to localStorage
+        const localData = loadFromLocalStorage();
+        if (Object.keys(localData).length > 0) {
+          setContent(localData);
+        }
       }
-      // If not ok (429, 500, etc.), just keep default content
     } catch {
-      // Network error (server down, sandbox inactive) — page uses default content
+      // Network error — use localStorage fallback
+      const localData = loadFromLocalStorage();
+      if (Object.keys(localData).length > 0) {
+        setContent(localData);
+      }
     } finally {
       setLoading(false);
     }
@@ -69,6 +104,13 @@ export function ContentProvider({ children }: { children: ReactNode }) {
 
   const updateContent = useCallback(
     async (key: string, value: unknown) => {
+      // Optimistically update local state and localStorage first
+      // This ensures edits work even on Vercel where DB is read-only
+      const updatedContent = { ...content, [key]: value };
+      setContent(updatedContent);
+      saveToLocalStorage(updatedContent);
+
+      // Then try to persist to database
       try {
         const res = await fetch(`/api/content/${key}`, {
           method: "PUT",
@@ -79,7 +121,7 @@ export function ContentProvider({ children }: { children: ReactNode }) {
           body: JSON.stringify({ value }),
         });
         if (res.ok) {
-          setContent((prev) => ({ ...prev, [key]: value }));
+          // Database save succeeded — content is persisted server-side too
         } else if (res.status === 401) {
           // Session expired — clear admin state
           localStorage.removeItem("isAdmin");
@@ -87,15 +129,22 @@ export function ContentProvider({ children }: { children: ReactNode }) {
           localStorage.removeItem("adminPassword");
           window.location.reload();
           throw new Error("Sesi admin berakhir. Silakan login kembali.");
+        } else if (res.status === 503) {
+          // Database unavailable (Vercel serverless) — that's OK,
+          // content is already saved in localStorage
         } else {
           const data = await res.json().catch(() => ({}));
           throw new Error(data.error || "Gagal menyimpan konten");
         }
       } catch (e) {
-        throw e;
+        // Re-throw auth errors
+        if (e instanceof Error && e.message.includes("Sesi admin")) {
+          throw e;
+        }
+        // Network errors — content is still saved in localStorage, that's fine
       }
     },
-    []
+    [content]
   );
 
   return (

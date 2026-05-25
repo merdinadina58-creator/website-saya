@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { useContent } from "@/components/ContentProvider";
 import { useAdmin } from "@/components/AdminProvider";
+import { useToast } from "@/hooks/use-toast";
 
 interface FooterSocial {
   icon: string;
@@ -53,6 +54,7 @@ export default function FooterSection() {
   const { content, updateContent } = useContent();
   const footer = (content.footer as unknown as FooterData) || defaultFooter;
   const { isAdmin } = useAdmin();
+  const { toast } = useToast();
 
   const [editOpen, setEditOpen] = useState(false);
   const [form, setForm] = useState<FooterData>(defaultFooter);
@@ -72,6 +74,9 @@ export default function FooterSection() {
     try {
       await updateContent("footer", form);
       setEditOpen(false);
+      toast({ title: "Berhasil", description: "Konten berhasil diperbarui" });
+    } catch (e) {
+      toast({ title: "Gagal", description: e instanceof Error ? e.message : "Gagal menyimpan konten", variant: "destructive" });
     } finally {
       setSaving(false);
     }

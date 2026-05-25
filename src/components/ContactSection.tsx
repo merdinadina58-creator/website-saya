@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/dialog";
 import { useContent } from "@/components/ContentProvider";
 import { useAdmin } from "@/components/AdminProvider";
+import { useToast } from "@/hooks/use-toast";
 
 interface ContactItem {
   icon: string;
@@ -98,6 +99,7 @@ export default function ContactSection() {
   const { content, updateContent } = useContent();
   const contact = (content.contact as unknown as ContactData) || defaultContact;
   const { isAdmin } = useAdmin();
+  const { toast } = useToast();
 
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-100px" });
@@ -116,6 +118,9 @@ export default function ContactSection() {
     try {
       await updateContent("contact", form);
       setEditOpen(false);
+      toast({ title: "Berhasil", description: "Konten berhasil diperbarui" });
+    } catch (e) {
+      toast({ title: "Gagal", description: e instanceof Error ? e.message : "Gagal menyimpan konten", variant: "destructive" });
     } finally {
       setSaving(false);
     }

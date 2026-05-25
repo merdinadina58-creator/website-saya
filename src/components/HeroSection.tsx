@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { useContent } from "@/components/ContentProvider";
 import { useAdmin } from "@/components/AdminProvider";
+import { useToast } from "@/hooks/use-toast";
 
 const defaultHero = {
   name: "Alex Morgan",
@@ -39,11 +40,16 @@ export default function HeroSection() {
     setEditOpen(true);
   };
 
+  const { toast } = useToast();
+
   const handleSave = async () => {
     setSaving(true);
     try {
       await updateContent("hero", form);
       setEditOpen(false);
+      toast({ title: "Berhasil", description: "Konten hero berhasil diperbarui" });
+    } catch (e) {
+      toast({ title: "Gagal", description: e instanceof Error ? e.message : "Gagal menyimpan konten", variant: "destructive" });
     } finally {
       setSaving(false);
     }
