@@ -3,7 +3,21 @@
 import { useState, useEffect, useSyncExternalStore } from "react";
 import { motion } from "framer-motion";
 import { useTheme } from "next-themes";
-import { Menu, Sun, Moon } from "lucide-react";
+import {
+  Menu,
+  Sun,
+  Moon,
+  LayoutDashboard,
+  BarChart3,
+  Mail,
+  Cloud,
+  MessageCircle,
+  Kanban,
+  ChevronDown,
+  ExternalLink,
+  Grid3X3,
+  type LucideIcon,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -13,6 +27,15 @@ import {
   SheetTitle,
   SheetClose,
 } from "@/components/ui/sheet";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
+} from "@/components/ui/dropdown-menu";
+import { apps, type AppItem } from "@/data/apps";
 
 const navLinks = [
   { label: "Tentang", href: "#about" },
@@ -21,6 +44,16 @@ const navLinks = [
   { label: "Kontak", href: "#contact" },
 ];
 
+// Peta ikon Lucide berdasarkan nama string di konfigurasi
+const iconMap: Record<string, LucideIcon> = {
+  LayoutDashboard,
+  BarChart3,
+  Mail,
+  Cloud,
+  MessageCircle,
+  Kanban,
+};
+
 const emptySubscribe = () => () => {};
 function useMounted() {
   return useSyncExternalStore(
@@ -28,6 +61,12 @@ function useMounted() {
     () => true,
     () => false
   );
+}
+
+function AppIcon({ iconName, className }: { iconName: string; className?: string }) {
+  const IconComponent = iconMap[iconName];
+  if (!IconComponent) return <Grid3X3 className={className} />;
+  return <IconComponent className={className} />;
 }
 
 export default function Navbar() {
@@ -88,6 +127,56 @@ export default function Navbar() {
               <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-accent transition-all duration-300 group-hover:w-full" />
             </a>
           ))}
+
+          {/* Desktop Apps Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="text-sm font-medium text-muted-foreground hover:text-accent transition-colors relative group flex items-center gap-1">
+                <Grid3X3 className="size-3.5" />
+                Aplikasi
+                <ChevronDown className="size-3 transition-transform duration-200 group-data-[state=open]:rotate-180" />
+                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-accent transition-all duration-300 group-hover:w-full" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="end"
+              className="w-72 p-2"
+            >
+              <DropdownMenuLabel className="px-2 py-1.5 text-xs font-semibold uppercase tracking-widest text-accent">
+                Aplikasi Saya
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <div className="grid grid-cols-2 gap-1 py-1">
+                {apps.map((app: AppItem) => (
+                  <DropdownMenuItem
+                    key={app.name}
+                    asChild
+                    className="flex flex-col items-start gap-1 p-3 rounded-lg cursor-pointer focus:bg-accent/10"
+                  >
+                    <a
+                      href={app.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex flex-col items-start gap-1.5 w-full"
+                    >
+                      <div className="flex items-center gap-2 w-full">
+                        <div className={`shrink-0 ${app.color}`}>
+                          <AppIcon iconName={app.icon} className="size-4" />
+                        </div>
+                        <span className="text-sm font-medium text-foreground truncate">
+                          {app.name}
+                        </span>
+                        <ExternalLink className="size-2.5 text-muted-foreground/50 ml-auto shrink-0" />
+                      </div>
+                      <span className="text-[11px] leading-tight text-muted-foreground line-clamp-1 pl-6">
+                        {app.description}
+                      </span>
+                    </a>
+                  </DropdownMenuItem>
+                ))}
+              </div>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         {/* Actions */}
@@ -135,6 +224,37 @@ export default function Navbar() {
                       </a>
                     </SheetClose>
                   ))}
+
+                  {/* Mobile Apps Section */}
+                  <div className="pt-2">
+                    <p className="text-xs font-semibold uppercase tracking-widest text-accent mb-3 px-1">
+                      Aplikasi Saya
+                    </p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {apps.map((app: AppItem) => (
+                        <SheetClose asChild key={app.name}>
+                          <a
+                            href={app.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex flex-col items-start gap-1.5 p-3 rounded-lg border border-border/50 hover:border-accent/30 hover:bg-accent/5 transition-all duration-200"
+                          >
+                            <div className="flex items-center gap-2">
+                              <div className={app.color}>
+                                <AppIcon iconName={app.icon} className="size-4" />
+                              </div>
+                              <span className="text-sm font-medium text-foreground truncate">
+                                {app.name}
+                              </span>
+                            </div>
+                            <span className="text-[11px] text-muted-foreground line-clamp-1 pl-6">
+                              {app.description}
+                            </span>
+                          </a>
+                        </SheetClose>
+                      ))}
+                    </div>
+                  </div>
                 </nav>
               </SheetContent>
             </Sheet>
