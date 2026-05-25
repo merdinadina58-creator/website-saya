@@ -1,3 +1,4 @@
+import { ContentProvider } from "@/components/ContentProvider";
 import Navbar from "@/components/Navbar";
 import HeroSection from "@/components/HeroSection";
 import AboutSection from "@/components/AboutSection";
@@ -8,18 +9,20 @@ import FooterSection from "@/components/FooterSection";
 
 export default function Home() {
   return (
-    <div className="min-h-screen flex flex-col">
-      <Navbar />
-      <main className="flex-1">
-        <HeroSection />
-        <AboutSection />
-        <SkillsSection />
-        <PortfolioSection />
-        <ContactSection />
-      </main>
-      <footer className="mt-auto">
-        <FooterSection />
-      </footer>
-    </div>
+    <ContentProvider>
+      <div className="min-h-screen flex flex-col">
+        <Navbar />
+        <main className="flex-1">
+          <HeroSection />
+          <AboutSection />
+          <SkillsSection />
+          <PortfolioSection />
+          <ContactSection />
+        </main>
+        <footer className="mt-auto">
+          <FooterSection />
+        </footer>
+      </div>
+    </ContentProvider>
   );
 }

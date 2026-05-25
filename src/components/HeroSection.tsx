@@ -1,10 +1,53 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowDown, Sparkles } from "lucide-react";
+import { ArrowDown, Sparkles, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { useContent } from "@/components/ContentProvider";
+
+const defaultHero = {
+  name: "Alex Morgan",
+  title: "Developer Kreatif & Desainer",
+  tagline:
+    "Menciptakan pengalaman digital yang elegan di mana desain bertemu teknologi. Saya membangun aplikasi web yang indah, cepat, dan aksesibel yang meninggalkan kesan mendalam.",
+  available: "Tersedia untuk proyek freelance",
+  cta1: "Lihat Karya Saya",
+  cta2: "Hubungi Saya",
+};
 
 export default function HeroSection() {
+  const { content, updateContent } = useContent();
+  const hero = (content.hero as typeof defaultHero) || defaultHero;
+
+  const [editOpen, setEditOpen] = useState(false);
+  const [form, setForm] = useState(defaultHero);
+  const [saving, setSaving] = useState(false);
+
+  const handleEditOpen = () => {
+    setForm({ ...hero });
+    setEditOpen(true);
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await updateContent("hero", form);
+      setEditOpen(false);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleScrollTo = (id: string) => {
     const el = document.querySelector(id);
     if (el) el.scrollIntoView({ behavior: "smooth" });
@@ -15,6 +58,15 @@ export default function HeroSection() {
       id="hero"
       className="relative flex min-h-screen items-center justify-center overflow-hidden"
     >
+      {/* Edit Button */}
+      <button
+        onClick={handleEditOpen}
+        className="absolute top-24 right-4 z-10 flex size-9 items-center justify-center rounded-full bg-accent/10 text-accent hover:bg-accent/20 transition-colors"
+        aria-label="Edit seksi"
+      >
+        <Pencil className="size-4" />
+      </button>
+
       {/* Background Image */}
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-20 dark:opacity-30"
@@ -32,7 +84,7 @@ export default function HeroSection() {
           className="mb-6 inline-flex items-center gap-2 rounded-full border border-accent/30 bg-accent/10 px-4 py-1.5 text-sm font-medium text-accent"
         >
           <Sparkles className="size-4" />
-          Tersedia untuk proyek freelance
+          {hero.available}
         </motion.div>
 
         <motion.h1
@@ -41,8 +93,10 @@ export default function HeroSection() {
           transition={{ duration: 0.8, delay: 0.15, ease: "easeOut" }}
           className="text-4xl sm:text-5xl md:text-7xl font-bold tracking-tight text-foreground"
         >
-          Alex{" "}
-          <span className="text-accent">Morgan</span>
+          {hero.name?.split(" ")[0] || "Alex"}{" "}
+          <span className="text-accent">
+            {hero.name?.split(" ").slice(1).join(" ") || "Morgan"}
+          </span>
         </motion.h1>
 
         <motion.p
@@ -51,7 +105,7 @@ export default function HeroSection() {
           transition={{ duration: 0.8, delay: 0.3, ease: "easeOut" }}
           className="mt-4 text-lg sm:text-xl md:text-2xl font-light text-muted-foreground"
         >
-          Developer Kreatif & Desainer
+          {hero.title}
         </motion.p>
 
         <motion.p
@@ -60,9 +114,7 @@ export default function HeroSection() {
           transition={{ duration: 0.8, delay: 0.45, ease: "easeOut" }}
           className="mx-auto mt-6 max-w-2xl text-sm sm:text-base text-muted-foreground/80 leading-relaxed"
         >
-          Menciptakan pengalaman digital yang elegan di mana desain bertemu teknologi.
-          Saya membangun aplikasi web yang indah, cepat, dan aksesibel yang
-          meninggalkan kesan mendalam.
+          {hero.tagline}
         </motion.p>
 
         <motion.div
@@ -76,7 +128,7 @@ export default function HeroSection() {
             onClick={() => handleScrollTo("#portfolio")}
             className="bg-accent text-accent-foreground hover:bg-accent/90 shadow-lg cursor-pointer min-h-[44px] px-8"
           >
-            Lihat Karya Saya
+            {hero.cta1}
           </Button>
           <Button
             variant="outline"
@@ -84,7 +136,7 @@ export default function HeroSection() {
             onClick={() => handleScrollTo("#contact")}
             className="border-accent/40 text-accent hover:bg-accent/10 min-h-[44px] px-8 cursor-pointer"
           >
-            Hubungi Saya
+            {hero.cta2}
           </Button>
         </motion.div>
       </div>
@@ -105,6 +157,74 @@ export default function HeroSection() {
           <ArrowDown className="size-4" />
         </motion.div>
       </motion.div>
+
+      {/* Edit Dialog */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Hero</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Nama</label>
+              <Input
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Judul</label>
+              <Input
+                value={form.title}
+                onChange={(e) => setForm({ ...form, title: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Tagline</label>
+              <Textarea
+                value={form.tagline}
+                onChange={(e) => setForm({ ...form, tagline: e.target.value })}
+                rows={3}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Ketersediaan</label>
+              <Input
+                value={form.available}
+                onChange={(e) =>
+                  setForm({ ...form, available: e.target.value })
+                }
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Tombol CTA 1</label>
+              <Input
+                value={form.cta1}
+                onChange={(e) => setForm({ ...form, cta1: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Tombol CTA 2</label>
+              <Input
+                value={form.cta2}
+                onChange={(e) => setForm({ ...form, cta2: e.target.value })}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditOpen(false)}>
+              Batal
+            </Button>
+            <Button
+              onClick={handleSave}
+              disabled={saving}
+              className="bg-accent text-accent-foreground hover:bg-accent/90"
+            >
+              {saving ? "Menyimpan..." : "Simpan"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }

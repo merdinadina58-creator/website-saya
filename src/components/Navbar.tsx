@@ -40,6 +40,7 @@ import {
   DialogFooter,
   DialogClose,
 } from "@/components/ui/dialog";
+import { useContent } from "@/components/ContentProvider";
 import { defaultApps, type AppItem } from "@/data/apps";
 
 const navLinks = [
@@ -48,55 +49,6 @@ const navLinks = [
   { label: "Portofolio", href: "#portfolio" },
   { label: "Kontak", href: "#contact" },
 ];
-
-const STORAGE_KEY = "my-apps-list";
-
-// ── External store untuk aplikasi (localStorage) ──
-let appsListeners: (() => void)[] = [];
-let appsCache: AppItem[] | null = null;
-
-function loadAppsFromStorage(): AppItem[] {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-    }
-  } catch {
-    // ignore
-  }
-  return defaultApps;
-}
-
-function getAppsSnapshot(): AppItem[] {
-  if (appsCache === null) {
-    appsCache = loadAppsFromStorage();
-  }
-  return appsCache;
-}
-
-function getAppsServerSnapshot(): AppItem[] {
-  return defaultApps;
-}
-
-function subscribeToApps(callback: () => void): () => void {
-  appsListeners = [...appsListeners, callback];
-  return () => {
-    appsListeners = appsListeners.filter((l) => l !== callback);
-  };
-}
-
-function updateAppsStore(newApps: AppItem[]) {
-  appsCache = newApps;
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(newApps));
-  } catch {
-    // ignore
-  }
-  for (const listener of appsListeners) {
-    listener();
-  }
-}
 
 // ── useMounted hook ──
 const emptySubscribe = () => () => {};
@@ -117,29 +69,30 @@ export default function Navbar() {
   const mounted = useMounted();
   const { theme, setTheme } = useTheme();
 
-  // Read apps from external store (syncs with localStorage, no hydration mismatch)
-  const apps = useSyncExternalStore(subscribeToApps, getAppsSnapshot, getAppsServerSnapshot);
+  const { content, updateContent } = useContent();
+  const apps = (content.apps as AppItem[]) || defaultApps;
 
-  const handleAddApp = useCallback(() => {
+  const handleAddApp = useCallback(async () => {
     const name = newName.trim();
     let url = newUrl.trim();
     if (!name || !url) return;
     if (!url.startsWith("http://") && !url.startsWith("https://")) {
       url = "https://" + url;
     }
-    updateAppsStore([...apps, { name, url }]);
+    const newApps = [...apps, { name, url }];
+    await updateContent("apps", newApps);
     setNewName("");
     setNewUrl("");
     setAddDialogOpen(false);
     setMobileAddOpen(false);
-  }, [newName, newUrl, apps]);
+  }, [newName, newUrl, apps, updateContent]);
 
   const handleRemoveApp = useCallback(
-    (index: number) => {
+    async (index: number) => {
       const updated = apps.filter((_, i) => i !== index);
-      updateAppsStore(updated);
+      await updateContent("apps", updated);
     },
-    [apps]
+    [apps, updateContent]
   );
 
   useEffect(() => {
