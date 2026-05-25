@@ -3,8 +3,7 @@
 import { AlertTriangle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-export default function GlobalError({
-  error,
+export default function Error({
   reset,
 }: {
   error: Error & { digest?: string };
@@ -22,16 +21,6 @@ export default function GlobalError({
         Maaf, halaman ini mengalami kesalahan. Silakan coba lagi atau muat
         ulang halaman.
       </p>
-      {error?.message && (
-        <details className="mb-6 max-w-lg w-full">
-          <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground transition-colors">
-            Detail error
-          </summary>
-          <pre className="mt-2 rounded-lg bg-muted p-3 text-xs text-destructive overflow-auto max-h-40">
-            {error.message}
-          </pre>
-        </details>
-      )}
       <div className="flex items-center gap-3">
         <Button variant="outline" onClick={reset}>
           <RefreshCw className="size-4 mr-1" />

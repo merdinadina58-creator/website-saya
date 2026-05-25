@@ -1,6 +1,7 @@
-import { ContentProvider } from "@/components/ContentProvider";
+"use client";
+
 import { AdminProvider } from "@/components/AdminProvider";
-import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { ContentProvider } from "@/components/ContentProvider";
 import Navbar from "@/components/Navbar";
 import HeroSection from "@/components/HeroSection";
 import AboutSection from "@/components/AboutSection";
@@ -12,39 +13,23 @@ import FooterSection from "@/components/FooterSection";
 
 export default function Home() {
   return (
-    <ErrorBoundary>
-      <AdminProvider>
-        <ContentProvider>
-          <div className="min-h-screen flex flex-col">
-            <Navbar />
-            <main className="flex-1">
-              <ErrorBoundary>
-                <HeroSection />
-              </ErrorBoundary>
-              <ErrorBoundary>
-                <AboutSection />
-              </ErrorBoundary>
-              <ErrorBoundary>
-                <SkillsSection />
-              </ErrorBoundary>
-              <ErrorBoundary>
-                <PortfolioSection />
-              </ErrorBoundary>
-              <ErrorBoundary>
-                <InformasiSection />
-              </ErrorBoundary>
-              <ErrorBoundary>
-                <ContactSection />
-              </ErrorBoundary>
-            </main>
-            <footer className="mt-auto">
-              <ErrorBoundary>
-                <FooterSection />
-              </ErrorBoundary>
-            </footer>
-          </div>
-        </ContentProvider>
-      </AdminProvider>
-    </ErrorBoundary>
+    <AdminProvider>
+      <ContentProvider>
+        <div className="min-h-screen flex flex-col">
+          <Navbar />
+          <main className="flex-1">
+            <HeroSection />
+            <AboutSection />
+            <SkillsSection />
+            <PortfolioSection />
+            <InformasiSection />
+            <ContactSection />
+          </main>
+          <footer className="mt-auto">
+            <FooterSection />
+          </footer>
+        </div>
+      </ContentProvider>
+    </AdminProvider>
   );
 }
