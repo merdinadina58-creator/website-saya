@@ -134,6 +134,24 @@ export default function Navbar() {
   const [logoDialogOpen, setLogoDialogOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Update favicon dynamically when logo changes
+  const updateFavicon = useCallback((src: string) => {
+    try {
+      // Update the dynamic favicon link tag
+      const dynamicFavicon = document.getElementById("dynamic-favicon") as HTMLLinkElement;
+      if (dynamicFavicon) {
+        dynamicFavicon.href = "/api/favicon?t=" + Date.now();
+      }
+      // Update apple touch icon
+      const dynamicAppleIcon = document.getElementById("dynamic-apple-icon") as HTMLLinkElement;
+      if (dynamicAppleIcon) {
+        dynamicAppleIcon.href = "/api/logo-icon?size=512&t=" + Date.now();
+      }
+    } catch {
+      // Favicon update is non-critical, ignore errors
+    }
+  }, []);
+
   // Admin state
   const { isAdmin, adminUsername, login, logout, getAuthHeaders } = useAdmin();
 
@@ -226,6 +244,8 @@ export default function Navbar() {
           } else {
             setLogoSrc(newSrc.startsWith("data:") ? newSrc : newSrc + "?t=" + Date.now());
           }
+          // Update browser favicon dynamically
+          updateFavicon(newSrc);
           setLogoDialogOpen(false);
         } else {
           setLogoError(data.error || "Gagal mengupload logo");

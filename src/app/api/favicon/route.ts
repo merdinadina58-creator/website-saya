@@ -1,12 +1,37 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { db, isDbAvailable, markDbUnavailable } from "@/lib/db";
+import { readFile } from "fs/promises";
+import { join } from "path";
 
-const FALLBACK_URL = new URL("/favicon.ico", "http://localhost");
+async function serveStaticFavicon() {
+  try {
+    const filePath = join(process.cwd(), "public", "favicon.ico");
+    const buffer = await readFile(filePath);
+    return new NextResponse(new Uint8Array(buffer), {
+      headers: {
+        "Content-Type": "image/x-icon",
+        "Cache-Control": "public, max-age=3600",
+      },
+    });
+  } catch {
+    // If even the static file fails, return a minimal transparent PNG
+    const minimalPng = Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+      "base64"
+    );
+    return new NextResponse(new Uint8Array(minimalPng), {
+      headers: {
+        "Content-Type": "image/png",
+        "Cache-Control": "public, max-age=300",
+      },
+    });
+  }
+}
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     if (!(await isDbAvailable())) {
-      return NextResponse.redirect(FALLBACK_URL);
+      return await serveStaticFavicon();
     }
 
     const record = await db.siteContent.findUnique({
@@ -14,20 +39,20 @@ export async function GET() {
     });
 
     if (!record) {
-      return NextResponse.redirect(FALLBACK_URL);
+      return await serveStaticFavicon();
     }
 
     const logoData = JSON.parse(record.value);
     const dataUrl: string = logoData.src || "";
 
     if (!dataUrl.startsWith("data:")) {
-      return NextResponse.redirect(FALLBACK_URL);
+      return await serveStaticFavicon();
     }
 
     // Parse base64 data URL
     const matches = dataUrl.match(/^data:(.+);base64,(.+)$/);
     if (!matches) {
-      return NextResponse.redirect(FALLBACK_URL);
+      return await serveStaticFavicon();
     }
 
     const mimeType = matches[1];
@@ -59,6 +84,6 @@ export async function GET() {
     }
   } catch {
     markDbUnavailable();
-    return NextResponse.redirect(FALLBACK_URL);
+    return await serveStaticFavicon();
   }
 }

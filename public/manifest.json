@@ -9,13 +9,13 @@
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/api/logo-icon?size=192",
+      "src": "/logo-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/api/logo-icon?size=512",
+      "src": "/logo-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"

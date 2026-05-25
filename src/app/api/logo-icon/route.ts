@@ -1,9 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db, isDbAvailable, markDbUnavailable } from "@/lib/db";
+import { readFile } from "fs/promises";
+import { join } from "path";
 
-function getDefaultUrl(size: number) {
-  const defaultPath = size <= 192 ? "/logo-192.png" : "/logo-512.png";
-  return new URL(defaultPath, "http://localhost");
+async function serveStaticLogo(size: number) {
+  try {
+    const filename = size <= 192 ? "logo-192.png" : "logo-512.png";
+    const filePath = join(process.cwd(), "public", filename);
+    const buffer = await readFile(filePath);
+    return new NextResponse(new Uint8Array(buffer), {
+      headers: {
+        "Content-Type": "image/png",
+        "Cache-Control": "public, max-age=3600",
+      },
+    });
+  } catch {
+    // If even the static file fails, return a minimal transparent PNG
+    const minimalPng = Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+      "base64"
+    );
+    return new NextResponse(new Uint8Array(minimalPng), {
+      headers: {
+        "Content-Type": "image/png",
+        "Cache-Control": "public, max-age=300",
+      },
+    });
+  }
 }
 
 export async function GET(req: NextRequest) {
@@ -11,7 +34,7 @@ export async function GET(req: NextRequest) {
 
   try {
     if (!(await isDbAvailable())) {
-      return NextResponse.redirect(getDefaultUrl(size));
+      return await serveStaticLogo(size);
     }
 
     const record = await db.siteContent.findUnique({
@@ -19,20 +42,20 @@ export async function GET(req: NextRequest) {
     });
 
     if (!record) {
-      return NextResponse.redirect(getDefaultUrl(size));
+      return await serveStaticLogo(size);
     }
 
     const logoData = JSON.parse(record.value);
     const dataUrl: string = logoData.src || "";
 
     if (!dataUrl.startsWith("data:")) {
-      return NextResponse.redirect(getDefaultUrl(size));
+      return await serveStaticLogo(size);
     }
 
     // Parse base64 data URL
     const matches = dataUrl.match(/^data:(.+);base64,(.+)$/);
     if (!matches) {
-      return NextResponse.redirect(getDefaultUrl(size));
+      return await serveStaticLogo(size);
     }
 
     const mimeType = matches[1];
@@ -64,6 +87,6 @@ export async function GET(req: NextRequest) {
     }
   } catch {
     markDbUnavailable();
-    return NextResponse.redirect(getDefaultUrl(size));
+    return await serveStaticLogo(size);
   }
 }

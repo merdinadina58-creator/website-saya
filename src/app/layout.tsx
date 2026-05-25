@@ -36,10 +36,11 @@ export const metadata: Metadata = {
   authors: [{ name: "Alex Morgan" }],
   icons: {
     icon: [
+      { url: "/favicon.ico", sizes: "any" },
       { url: "/api/favicon", sizes: "32x32", type: "image/png" },
-      { url: "/api/logo-icon?size=192", sizes: "192x192", type: "image/png" },
+      { url: "/logo-192.png", sizes: "192x192", type: "image/png" },
     ],
-    apple: "/api/logo-icon?size=512",
+    apple: "/logo-512.png",
   },
   manifest: "/manifest.json",
   openGraph: {
@@ -63,8 +64,10 @@ export default function RootLayout({
   return (
     <html lang="id" suppressHydrationWarning>
       <head>
-        <link rel="icon" href="/api/favicon" sizes="32x32" type="image/png" />
-        <link rel="apple-touch-icon" href="/api/logo-icon?size=512" />
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="icon" href="/api/favicon" sizes="32x32" type="image/png" id="dynamic-favicon" />
+        <link rel="apple-touch-icon" href="/logo-512.png" />
+        <link rel="apple-touch-icon" href="/api/logo-icon?size=512" id="dynamic-apple-icon" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="mobile-web-app-capable" content="yes" />
       </head>
