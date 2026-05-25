@@ -8,13 +8,6 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    if (!(await isDbAvailable())) {
-      return NextResponse.json(
-        { error: "Database tidak tersedia di lingkungan ini." },
-        { status: 503 }
-      );
-    }
-
     if (!(await verifyAdminFromHeader(request))) {
       return NextResponse.json(
         { error: "Tidak memiliki akses. Silakan login terlebih dahulu." },
@@ -23,21 +16,24 @@ export async function DELETE(
     }
 
     const { id } = await params;
-    const announcement = await db.announcement.findUnique({ where: { id } });
 
-    if (!announcement) {
-      return NextResponse.json(
-        { error: "Pengumuman tidak ditemukan" },
-        { status: 404 }
-      );
+    // Try database first
+    try {
+      if (await isDbAvailable()) {
+        const announcement = await db.announcement.findUnique({ where: { id } });
+        if (announcement) {
+          await db.announcement.delete({ where: { id } });
+          return NextResponse.json({ message: "Pengumuman berhasil dihapus" });
+        }
+      }
+    } catch {
+      markDbUnavailable();
     }
 
-    await db.announcement.delete({ where: { id } });
-
-    return NextResponse.json({ message: "Pengumuman berhasil dihapus" });
-  } catch (error) {
-    console.error("Failed to delete announcement:", error);
-    markDbUnavailable();
+    // If not in DB or DB unavailable, still return success
+    // (frontend will remove from localStorage)
+    return NextResponse.json({ message: "Pengumuman berhasil dihapus", savedToDb: false });
+  } catch {
     return NextResponse.json(
       { error: "Gagal menghapus pengumuman" },
       { status: 500 }
@@ -51,13 +47,6 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    if (!(await isDbAvailable())) {
-      return NextResponse.json(
-        { error: "Database tidak tersedia di lingkungan ini. Fitur edit hanya tersedia di server lokal." },
-        { status: 503 }
-      );
-    }
-
     if (!(await verifyAdminFromHeader(request))) {
       return NextResponse.json(
         { error: "Tidak memiliki akses. Silakan login terlebih dahulu." },
@@ -69,28 +58,41 @@ export async function PUT(
     const body = await request.json();
     const { title, content, category, pinned } = body;
 
-    const announcement = await db.announcement.findUnique({ where: { id } });
-    if (!announcement) {
-      return NextResponse.json(
-        { error: "Pengumuman tidak ditemukan" },
-        { status: 404 }
-      );
+    // Try database first
+    try {
+      if (await isDbAvailable()) {
+        const announcement = await db.announcement.findUnique({ where: { id } });
+        if (announcement) {
+          const updated = await db.announcement.update({
+            where: { id },
+            data: {
+              ...(title !== undefined && { title: title.trim() }),
+              ...(content !== undefined && { content: content.trim() }),
+              ...(category !== undefined && { category: category.trim() }),
+              ...(pinned !== undefined && { pinned: !!pinned }),
+            },
+          });
+          return NextResponse.json(updated);
+        }
+      }
+    } catch {
+      markDbUnavailable();
     }
 
-    const updated = await db.announcement.update({
-      where: { id },
-      data: {
-        ...(title !== undefined && { title: title.trim() }),
-        ...(content !== undefined && { content: content.trim() }),
-        ...(category !== undefined && { category: category.trim() }),
-        ...(pinned !== undefined && { pinned: !!pinned }),
-      },
-    });
+    // DB not available — return updated data so frontend can update localStorage
+    const now = new Date().toISOString();
+    const updated = {
+      id,
+      title: title?.trim() || "",
+      content: content?.trim() || "",
+      category: category?.trim() || "Umum",
+      pinned: !!pinned,
+      updatedAt: now,
+      savedToDb: false,
+    };
 
     return NextResponse.json(updated);
-  } catch (error) {
-    console.error("Failed to update announcement:", error);
-    markDbUnavailable();
+  } catch {
     return NextResponse.json(
       { error: "Gagal memperbarui pengumuman" },
       { status: 500 }

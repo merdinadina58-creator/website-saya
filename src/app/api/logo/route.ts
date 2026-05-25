@@ -4,14 +4,13 @@ import { verifyAdminFromHeader } from "@/lib/auth";
 
 export async function GET() {
   try {
-    if (!(await isDbAvailable())) {
-      return NextResponse.json({ src: "/logo-512.png" });
-    }
-    const record = await db.siteContent.findUnique({
-      where: { key: "_logo" },
-    });
-    if (record) {
-      return NextResponse.json(JSON.parse(record.value));
+    if (await isDbAvailable()) {
+      const record = await db.siteContent.findUnique({
+        where: { key: "_logo" },
+      });
+      if (record) {
+        return NextResponse.json(JSON.parse(record.value));
+      }
     }
   } catch {
     markDbUnavailable();
@@ -21,14 +20,7 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
-    if (!(await isDbAvailable())) {
-      return NextResponse.json(
-        { error: "Database tidak tersedia. Upload logo hanya tersedia di server lokal." },
-        { status: 503 }
-      );
-    }
-
-    // Auth check using the same method as content API
+    // Auth check — always verify first (works on Vercel via default credentials)
     if (!(await verifyAdminFromHeader(req))) {
       return NextResponse.json(
         { error: "Tidak memiliki akses. Silakan login terlebih dahulu." },
@@ -63,9 +55,32 @@ export async function POST(req: NextRequest) {
 
     const buffer = Buffer.from(await file.arrayBuffer());
 
-    // Convert to base64 and store in database
+    // Convert to base64
     const base64 = buffer.toString("base64");
     const dataUrl = `data:${file.type};base64,${base64}`;
+
+    const logoData = {
+      src: dataUrl,
+      uploadedAt: new Date().toISOString(),
+      originalName: file.name,
+      size: file.size,
+      mimeType: file.type,
+    };
+
+    // Try to save to database
+    let savedToDb = false;
+    try {
+      if (await isDbAvailable()) {
+        await db.siteContent.upsert({
+          where: { key: "_logo" },
+          update: { value: JSON.stringify(logoData) },
+          create: { key: "_logo", value: JSON.stringify(logoData) },
+        });
+        savedToDb = true;
+      }
+    } catch {
+      markDbUnavailable();
+    }
 
     // Also try to save to public folder (works locally, silently fails on Vercel)
     try {
@@ -100,22 +115,14 @@ export async function POST(req: NextRequest) {
       // Writing to public/ might fail on Vercel (read-only), that's OK
     }
 
-    // Store logo metadata in database (always works)
-    const logoData = {
-      src: dataUrl,
-      uploadedAt: new Date().toISOString(),
-      originalName: file.name,
-      size: file.size,
-      mimeType: file.type,
-    };
-
-    await db.siteContent.upsert({
-      where: { key: "_logo" },
-      update: { value: JSON.stringify(logoData) },
-      create: { key: "_logo", value: JSON.stringify(logoData) },
+    return NextResponse.json({
+      success: true,
+      logo: logoData,
+      savedToDb,
+      message: savedToDb
+        ? "Logo berhasil diupload"
+        : "Logo diperbarui di browser (database tidak tersedia)",
     });
-
-    return NextResponse.json({ success: true, logo: logoData });
   } catch (err) {
     console.error("Logo upload error:", err);
     markDbUnavailable();

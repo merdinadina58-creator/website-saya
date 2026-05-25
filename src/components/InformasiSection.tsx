@@ -81,6 +81,8 @@ function formatRelativeTime(dateStr: string): string {
   return formatDate(dateStr);
 }
 
+const LS_ANNOUNCEMENTS_KEY = "website-announcements";
+
 export default function InformasiSection() {
   const { isAdmin, getAuthHeaders } = useAdmin();
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
@@ -112,10 +114,33 @@ export default function InformasiSection() {
       const res = await fetch("/api/announcements");
       if (res.ok) {
         const data = await res.json();
-        setAnnouncements(data);
+        if (data.length > 0) {
+          setAnnouncements(data);
+          // Cache to localStorage for Vercel
+          try { localStorage.setItem(LS_ANNOUNCEMENTS_KEY, JSON.stringify(data)); } catch {}
+        } else {
+          // API returned empty — check localStorage
+          try {
+            const cached = localStorage.getItem(LS_ANNOUNCEMENTS_KEY);
+            if (cached) {
+              const parsed = JSON.parse(cached);
+              if (parsed.length > 0) setAnnouncements(parsed);
+            }
+          } catch {}
+        }
+      } else {
+        // API failed — use localStorage
+        try {
+          const cached = localStorage.getItem(LS_ANNOUNCEMENTS_KEY);
+          if (cached) setAnnouncements(JSON.parse(cached));
+        } catch {}
       }
     } catch {
-      // Silently fail — section will show "Belum ada pengumuman"
+      // Network error — use localStorage
+      try {
+        const cached = localStorage.getItem(LS_ANNOUNCEMENTS_KEY);
+        if (cached) setAnnouncements(JSON.parse(cached));
+      } catch {}
     } finally {
       setLoading(false);
     }
@@ -129,6 +154,17 @@ export default function InformasiSection() {
     if (!addForm.title.trim() || !addForm.content.trim()) return;
     setAddLoading(true);
     try {
+      const now = new Date().toISOString();
+      const localAnnouncement: Announcement = {
+        id: `local_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+        title: addForm.title.trim(),
+        content: addForm.content.trim(),
+        category: addForm.category || "Umum",
+        pinned: addForm.pinned,
+        createdAt: now,
+        updatedAt: now,
+      };
+
       const res = await fetch("/api/announcements", {
         method: "POST",
         headers: {
@@ -138,12 +174,39 @@ export default function InformasiSection() {
         body: JSON.stringify(addForm),
       });
       if (res.ok) {
-        await fetchAnnouncements();
+        const data = await res.json();
+        // Use server response if it has an id, otherwise use local
+        const newAnnouncement = data.id ? data : localAnnouncement;
+        const updated = [...announcements, newAnnouncement];
+        setAnnouncements(updated);
+        try { localStorage.setItem(LS_ANNOUNCEMENTS_KEY, JSON.stringify(updated)); } catch {}
+        setAddForm({ title: "", content: "", category: "Umum", pinned: false });
+        setAddOpen(false);
+      } else {
+        // API failed — still save locally
+        const updated = [...announcements, localAnnouncement];
+        setAnnouncements(updated);
+        try { localStorage.setItem(LS_ANNOUNCEMENTS_KEY, JSON.stringify(updated)); } catch {}
         setAddForm({ title: "", content: "", category: "Umum", pinned: false });
         setAddOpen(false);
       }
     } catch {
-      // Silently fail
+      // Network error — save locally anyway
+      const now = new Date().toISOString();
+      const localAnnouncement: Announcement = {
+        id: `local_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+        title: addForm.title.trim(),
+        content: addForm.content.trim(),
+        category: addForm.category || "Umum",
+        pinned: addForm.pinned,
+        createdAt: now,
+        updatedAt: now,
+      };
+      const updated = [...announcements, localAnnouncement];
+      setAnnouncements(updated);
+      try { localStorage.setItem(LS_ANNOUNCEMENTS_KEY, JSON.stringify(updated)); } catch {}
+      setAddForm({ title: "", content: "", category: "Umum", pinned: false });
+      setAddOpen(false);
     } finally {
       setAddLoading(false);
     }
@@ -166,13 +229,29 @@ export default function InformasiSection() {
           pinned: editForm.pinned,
         }),
       });
-      if (res.ok) {
-        await fetchAnnouncements();
-        setEditOpen(false);
-        setEditForm(null);
-      }
+      // Update locally regardless of API result
+      const now = new Date().toISOString();
+      const updatedList = announcements.map((a) =>
+        a.id === editForm.id
+          ? { ...a, title: editForm.title, content: editForm.content, category: editForm.category, pinned: editForm.pinned, updatedAt: now }
+          : a
+      );
+      setAnnouncements(updatedList);
+      try { localStorage.setItem(LS_ANNOUNCEMENTS_KEY, JSON.stringify(updatedList)); } catch {}
+      setEditOpen(false);
+      setEditForm(null);
     } catch {
-      // Silently fail
+      // Still update locally
+      const now = new Date().toISOString();
+      const updatedList = announcements.map((a) =>
+        a.id === editForm!.id
+          ? { ...a, title: editForm!.title, content: editForm!.content, category: editForm!.category, pinned: editForm!.pinned, updatedAt: now }
+          : a
+      );
+      setAnnouncements(updatedList);
+      try { localStorage.setItem(LS_ANNOUNCEMENTS_KEY, JSON.stringify(updatedList)); } catch {}
+      setEditOpen(false);
+      setEditForm(null);
     } finally {
       setEditLoading(false);
     }
@@ -182,16 +261,21 @@ export default function InformasiSection() {
     if (!deleteTarget) return;
     setDeleteLoading(true);
     try {
-      const res = await fetch(`/api/announcements/${deleteTarget.id}`, {
+      await fetch(`/api/announcements/${deleteTarget.id}`, {
         method: "DELETE",
         headers: { ...getAuthHeaders() },
       });
-      if (res.ok) {
-        await fetchAnnouncements();
-        setDeleteTarget(null);
-      }
+      // Remove locally regardless of API result
+      const updatedList = announcements.filter((a) => a.id !== deleteTarget.id);
+      setAnnouncements(updatedList);
+      try { localStorage.setItem(LS_ANNOUNCEMENTS_KEY, JSON.stringify(updatedList)); } catch {}
+      setDeleteTarget(null);
     } catch {
-      // Silently fail
+      // Still remove locally
+      const updatedList = announcements.filter((a) => a.id !== deleteTarget!.id);
+      setAnnouncements(updatedList);
+      try { localStorage.setItem(LS_ANNOUNCEMENTS_KEY, JSON.stringify(updatedList)); } catch {}
+      setDeleteTarget(null);
     } finally {
       setDeleteLoading(false);
     }
@@ -199,7 +283,7 @@ export default function InformasiSection() {
 
   const handleTogglePin = async (announcement: Announcement) => {
     try {
-      const res = await fetch(`/api/announcements/${announcement.id}`, {
+      await fetch(`/api/announcements/${announcement.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -207,11 +291,19 @@ export default function InformasiSection() {
         },
         body: JSON.stringify({ pinned: !announcement.pinned }),
       });
-      if (res.ok) {
-        await fetchAnnouncements();
-      }
+      // Update locally regardless
+      const updatedList = announcements.map((a) =>
+        a.id === announcement.id ? { ...a, pinned: !a.pinned, updatedAt: new Date().toISOString() } : a
+      );
+      setAnnouncements(updatedList);
+      try { localStorage.setItem(LS_ANNOUNCEMENTS_KEY, JSON.stringify(updatedList)); } catch {}
     } catch {
-      // Silently fail
+      // Still update locally
+      const updatedList = announcements.map((a) =>
+        a.id === announcement.id ? { ...a, pinned: !a.pinned, updatedAt: new Date().toISOString() } : a
+      );
+      setAnnouncements(updatedList);
+      try { localStorage.setItem(LS_ANNOUNCEMENTS_KEY, JSON.stringify(updatedList)); } catch {}
     }
   };
 

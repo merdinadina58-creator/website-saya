@@ -5,31 +5,22 @@ import { verifyAdminFromHeader } from "@/lib/auth";
 // GET /api/announcements — Public: list all announcements
 export async function GET() {
   try {
-    if (!(await isDbAvailable())) {
-      return NextResponse.json([]);
+    if (await isDbAvailable()) {
+      const announcements = await db.announcement.findMany({
+        orderBy: [{ pinned: "desc" }, { createdAt: "desc" }],
+      });
+      return NextResponse.json(announcements);
     }
-    const announcements = await db.announcement.findMany({
-      orderBy: [{ pinned: "desc" }, { createdAt: "desc" }],
-    });
-    return NextResponse.json(announcements);
-  } catch (error) {
-    console.error("Failed to fetch announcements:", error);
+  } catch {
     markDbUnavailable();
-    // Return empty array so the frontend shows "Belum ada pengumuman"
-    return NextResponse.json([]);
   }
+  // DB not available — return empty array
+  return NextResponse.json([]);
 }
 
 // POST /api/announcements — Admin only: create announcement
 export async function POST(request: NextRequest) {
   try {
-    if (!(await isDbAvailable())) {
-      return NextResponse.json(
-        { error: "Database tidak tersedia di lingkungan ini. Fitur edit hanya tersedia di server lokal." },
-        { status: 503 }
-      );
-    }
-
     if (!(await verifyAdminFromHeader(request))) {
       return NextResponse.json(
         { error: "Tidak memiliki akses. Silakan login terlebih dahulu." },
@@ -38,7 +29,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { title, content, category, pinned } = body;
+    const { title, content, category, pinned, id, createdAt, updatedAt } = body;
 
     if (!title || !content) {
       return NextResponse.json(
@@ -47,19 +38,39 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const announcement = await db.announcement.create({
-      data: {
-        title: title.trim(),
-        content: content.trim(),
-        category: (category || "Umum").trim(),
-        pinned: !!pinned,
-      },
-    });
+    // Try to save to database
+    let savedToDb = false;
+    try {
+      if (await isDbAvailable()) {
+        const announcement = await db.announcement.create({
+          data: {
+            title: title.trim(),
+            content: content.trim(),
+            category: (category || "Umum").trim(),
+            pinned: !!pinned,
+          },
+        });
+        return NextResponse.json(announcement, { status: 201 });
+      }
+    } catch {
+      markDbUnavailable();
+    }
+
+    // DB not available — return the announcement data so frontend can save to localStorage
+    const now = new Date().toISOString();
+    const announcement = {
+      id: id || `local_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+      title: title.trim(),
+      content: content.trim(),
+      category: (category || "Umum").trim(),
+      pinned: !!pinned,
+      createdAt: createdAt || now,
+      updatedAt: updatedAt || now,
+      savedToDb: false,
+    };
 
     return NextResponse.json(announcement, { status: 201 });
-  } catch (error) {
-    console.error("Failed to create announcement:", error);
-    markDbUnavailable();
+  } catch {
     return NextResponse.json(
       { error: "Gagal membuat pengumuman" },
       { status: 500 }
