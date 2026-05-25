@@ -22,8 +22,7 @@ const defaultHero = {
   tagline:
     "Menciptakan pengalaman digital yang elegan di mana desain bertemu teknologi. Saya membangun aplikasi web yang indah, cepat, dan aksesibel yang meninggalkan kesan mendalam.",
   available: "Tersedia untuk proyek freelance",
-  cta1: "Lihat Karya Saya",
-  cta2: "Hubungi Saya",
+  cta: "Hubungi Saya",
 };
 
 export default function HeroSection() {
@@ -129,18 +128,10 @@ export default function HeroSection() {
         >
           <Button
             size="lg"
-            onClick={() => handleScrollTo("#portfolio")}
+            onClick={() => handleScrollTo("#contact")}
             className="bg-accent text-accent-foreground hover:bg-accent/90 shadow-lg cursor-pointer min-h-[44px] px-8"
           >
-            {hero.cta1}
-          </Button>
-          <Button
-            variant="outline"
-            size="lg"
-            onClick={() => handleScrollTo("#contact")}
-            className="border-accent/40 text-accent hover:bg-accent/10 min-h-[44px] px-8 cursor-pointer"
-          >
-            {hero.cta2}
+            {hero.cta}
           </Button>
         </motion.div>
       </div>
@@ -201,17 +192,10 @@ export default function HeroSection() {
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">Tombol CTA 1</label>
+              <label className="text-sm font-medium">Tombol CTA</label>
               <Input
-                value={form.cta1}
-                onChange={(e) => setForm({ ...form, cta1: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Tombol CTA 2</label>
-              <Input
-                value={form.cta2}
-                onChange={(e) => setForm({ ...form, cta2: e.target.value })}
+                value={form.cta}
+                onChange={(e) => setForm({ ...form, cta: e.target.value })}
               />
             </div>
           </div>
