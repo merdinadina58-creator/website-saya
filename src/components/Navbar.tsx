@@ -17,6 +17,8 @@ import {
   UserCog,
   LogOut,
   User,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -64,6 +66,54 @@ function useMounted() {
     emptySubscribe,
     () => true,
     () => false
+  );
+}
+
+// ── Password Input with show/hide toggle ──
+function PasswordInput({
+  id,
+  label,
+  placeholder,
+  value,
+  onChange,
+  onKeyDown,
+  autoComplete,
+}: {
+  id: string;
+  label: string;
+  placeholder: string;
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+  autoComplete?: string;
+}) {
+  const [show, setShow] = useState(false);
+  return (
+    <div className="space-y-2">
+      <label htmlFor={id} className="text-sm font-medium">
+        {label}
+      </label>
+      <div className="relative">
+        <Input
+          id={id}
+          type={show ? "text" : "password"}
+          placeholder={placeholder}
+          value={value}
+          onChange={onChange}
+          onKeyDown={onKeyDown}
+          autoComplete={autoComplete}
+          className="pr-10"
+        />
+        <button
+          type="button"
+          onClick={() => setShow(!show)}
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+          aria-label={show ? "Sembunyikan password" : "Lihat password"}
+        >
+          {show ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -716,25 +766,20 @@ export default function Navbar() {
                 autoComplete="username"
               />
             </div>
-            <div className="space-y-2">
-              <label htmlFor="admin-password" className="text-sm font-medium">
-                Password
-              </label>
-              <Input
-                id="admin-password"
-                type="password"
-                placeholder="Masukkan password"
-                value={loginPassword}
-                onChange={(e) => {
-                  setLoginPassword(e.target.value);
-                  setLoginError("");
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handleLogin();
-                }}
-                autoComplete="current-password"
-              />
-            </div>
+            <PasswordInput
+              id="admin-password"
+              label="Password"
+              placeholder="Masukkan password"
+              value={loginPassword}
+              onChange={(e) => {
+                setLoginPassword(e.target.value);
+                setLoginError("");
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleLogin();
+              }}
+              autoComplete="current-password"
+            />
             {loginError && (
               <p className="text-sm text-destructive">{loginError}</p>
             )}
@@ -790,23 +835,18 @@ export default function Navbar() {
                     autoComplete="username"
                   />
                 </div>
-                <div className="space-y-2">
-                  <label htmlFor="acct-current-password" className="text-sm font-medium">
-                    Password Lama
-                  </label>
-                  <Input
-                    id="acct-current-password"
-                    type="password"
-                    placeholder="Password saat ini"
-                    value={accountCurrentPassword}
-                    onChange={(e) => {
-                      setAccountCurrentPassword(e.target.value);
-                      setAccountError("");
-                      setAccountSuccess("");
-                    }}
-                    autoComplete="current-password"
-                  />
-                </div>
+                <PasswordInput
+                  id="acct-current-password"
+                  label="Password Lama"
+                  placeholder="Password saat ini"
+                  value={accountCurrentPassword}
+                  onChange={(e) => {
+                    setAccountCurrentPassword(e.target.value);
+                    setAccountError("");
+                    setAccountSuccess("");
+                  }}
+                  autoComplete="current-password"
+                />
               </div>
             </div>
 
@@ -839,45 +879,35 @@ export default function Navbar() {
                 />
               </div>
 
-              <div className="space-y-2">
-                <label htmlFor="acct-new-password" className="text-sm font-medium">
-                  Password Baru
-                </label>
-                <Input
-                  id="acct-new-password"
-                  type="password"
-                  placeholder="Kosongkan jika tidak ingin mengubah"
-                  value={accountNewPassword}
+              <PasswordInput
+                id="acct-new-password"
+                label="Password Baru"
+                placeholder="Kosongkan jika tidak ingin mengubah"
+                value={accountNewPassword}
+                onChange={(e) => {
+                  setAccountNewPassword(e.target.value);
+                  setAccountError("");
+                  setAccountSuccess("");
+                }}
+                autoComplete="new-password"
+              />
+
+              {accountNewPassword && (
+                <PasswordInput
+                  id="acct-confirm-password"
+                  label="Konfirmasi Password Baru"
+                  placeholder="Ulangi password baru"
+                  value={accountConfirmPassword}
                   onChange={(e) => {
-                    setAccountNewPassword(e.target.value);
+                    setAccountConfirmPassword(e.target.value);
                     setAccountError("");
                     setAccountSuccess("");
                   }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleAccountSave();
+                  }}
                   autoComplete="new-password"
                 />
-              </div>
-
-              {accountNewPassword && (
-                <div className="space-y-2">
-                  <label htmlFor="acct-confirm-password" className="text-sm font-medium">
-                    Konfirmasi Password Baru
-                  </label>
-                  <Input
-                    id="acct-confirm-password"
-                    type="password"
-                    placeholder="Ulangi password baru"
-                    value={accountConfirmPassword}
-                    onChange={(e) => {
-                      setAccountConfirmPassword(e.target.value);
-                      setAccountError("");
-                      setAccountSuccess("");
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") handleAccountSave();
-                    }}
-                    autoComplete="new-password"
-                  />
-                </div>
               )}
             </div>
 
