@@ -9,11 +9,13 @@ import InformasiSection from "@/components/InformasiSection";
 import ContactSection from "@/components/ContactSection";
 import FooterSection from "@/components/FooterSection";
 import AdminToolbar from "@/components/AdminToolbar";
+import DynamicTitle from "@/components/DynamicTitle";
 
 export default function Home() {
   return (
     <AdminProvider>
       <ContentProvider>
+        <DynamicTitle />
         <div className="min-h-screen flex flex-col">
           <Navbar />
           <main className="flex-1">
