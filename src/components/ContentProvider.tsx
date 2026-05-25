@@ -55,8 +55,9 @@ export function ContentProvider({ children }: { children: ReactNode }) {
         const data = await res.json();
         setContent(data);
       }
+      // If not ok (429, 500, etc.), just keep default content
     } catch {
-      // Silently fail — page will use default content
+      // Network error (server down, sandbox inactive) — page uses default content
     } finally {
       setLoading(false);
     }

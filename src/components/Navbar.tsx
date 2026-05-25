@@ -166,9 +166,12 @@ export default function Navbar() {
   // Fetch current logo
   useEffect(() => {
     fetch("/api/logo")
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) return null;
+        return res.json();
+      })
       .then((data) => {
-        if (data.src) {
+        if (data?.src) {
           // If it's a base64 data URL, check size - only use if reasonable
           if (data.src.startsWith("data:") && data.size > 500000) {
             // Large base64 images in img src can cause performance issues
