@@ -127,6 +127,36 @@
   }
 }
 
+/* ───────────────────────────────────────────────────────────────
+   Framer Motion hydration fallback
+   ───────────────────────────────────────────────────────────────
+   framer-motion renders inline style="opacity:0; transform:translateY(…)"
+   for elements with `initial={{ opacity: 0 }}`. If JS fails to hydrate
+   (slow server, network issues, JS error), these elements stay invisible.
+
+   This CSS animation kicks in after a 3-second delay. During normal
+   operation framer-motion completes its animations well within 3s and
+   removes/updates the inline styles, so this animation is a no-op.
+   If hydration never happens, the animation forces content visible.
+   ─────────────────────────────────────────────────────────────── */
+
+@keyframes framerMotionFallback {
+  to {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
+/* Target elements inside <section> that framer-motion has set to opacity:0.
+   Using both spacing variants ("opacity: 0" and "opacity:0") to match
+   different browser serialization of inline styles. */
+section [style*="opacity: 0"],
+section [style*="opacity:0"] {
+  animation: framerMotionFallback 0.5s ease forwards;
+  animation-delay: 3s;
+  will-change: opacity, transform;
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 8px;

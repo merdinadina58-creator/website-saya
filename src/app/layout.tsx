@@ -48,6 +48,18 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
       >
+        {/* Fallback for when JavaScript is completely disabled.
+            framer-motion sets inline style="opacity:0" on animated elements;
+            without JS they stay invisible forever. This immediately makes
+            all such elements visible. */}
+        <noscript>
+          <style>{`
+            [style*="opacity: 0"], [style*="opacity:0"] {
+              opacity: 1 !important;
+              transform: none !important;
+            }
+          `}</style>
+        </noscript>
         <ThemeProvider
           attribute="class"
           defaultTheme="dark"
