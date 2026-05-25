@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useSyncExternalStore, useCallback } from "react";
+import { useState, useEffect, useSyncExternalStore, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
 import { useTheme } from "next-themes";
 import {
@@ -19,6 +19,8 @@ import {
   User,
   Eye,
   EyeOff,
+  ImagePlus,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -125,8 +127,15 @@ export default function Navbar() {
   const mounted = useMounted();
   const { theme, setTheme } = useTheme();
 
+  // Logo state
+  const [logoSrc, setLogoSrc] = useState("/logo-512.png");
+  const [logoUploading, setLogoUploading] = useState(false);
+  const [logoError, setLogoError] = useState("");
+  const [logoDialogOpen, setLogoDialogOpen] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   // Admin state
-  const { isAdmin, adminUsername, login, logout } = useAdmin();
+  const { isAdmin, adminUsername, login, logout, getAuthHeaders } = useAdmin();
 
   // Login dialog
   const [loginOpen, setLoginOpen] = useState(false);
@@ -153,6 +162,66 @@ export default function Navbar() {
   const footer = content.footer as { brandName?: string; brandAccent?: string } | undefined;
   const brandName = footer?.brandName || "Alex";
   const brandAccent = footer?.brandAccent || "Morgan";
+
+  // Fetch current logo
+  useEffect(() => {
+    fetch("/api/logo")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.src) setLogoSrc(data.src);
+      })
+      .catch(() => {});
+  }, []);
+
+  // Logo upload handler
+  const handleLogoUpload = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      // Client-side validation
+      if (file.size > 3 * 1024 * 1024) {
+        setLogoError(`Ukuran file maksimal 3MB. File Anda: ${(file.size / 1024 / 1024).toFixed(1)}MB`);
+        return;
+      }
+
+      const allowedTypes = ["image/png", "image/jpeg", "image/jpg", "image/webp", "image/svg+xml"];
+      if (!allowedTypes.includes(file.type)) {
+        setLogoError("Format file tidak didukung. Gunakan PNG, JPG, WEBP, atau SVG.");
+        return;
+      }
+
+      setLogoUploading(true);
+      setLogoError("");
+
+      try {
+        const formData = new FormData();
+        formData.append("logo", file);
+
+        const res = await fetch("/api/logo", {
+          method: "POST",
+          headers: getAuthHeaders(),
+          body: formData,
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+          setLogoSrc(data.logo.src + "?t=" + Date.now());
+          setLogoDialogOpen(false);
+        } else {
+          setLogoError(data.error || "Gagal mengupload logo");
+        }
+      } catch {
+        setLogoError("Gagal mengupload logo. Coba lagi.");
+      } finally {
+        setLogoUploading(false);
+        // Reset file input
+        if (fileInputRef.current) fileInputRef.current.value = "";
+      }
+    },
+    [getAuthHeaders]
+  );
 
   const handleAddApp = useCallback(async () => {
     const name = newName.trim();
@@ -320,20 +389,31 @@ export default function Navbar() {
       }`}
     >
       <nav className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
-        {/* Brand */}
+        {/* Brand with Logo */}
         <a
           href="#"
           onClick={(e) => {
             e.preventDefault();
             window.scrollTo({ top: 0, behavior: "smooth" });
           }}
-          className="text-lg font-bold tracking-tight text-foreground hover:text-accent transition-colors"
+          className="flex items-center gap-2.5 text-lg font-bold tracking-tight text-foreground hover:text-accent transition-colors"
         >
-          {brandName}
-          <span className="text-accent">.</span>
-          {brandAccent}
+          {/* Logo Image */}
+          <img
+            src={logoSrc}
+            alt="Logo"
+            className="size-8 rounded-lg object-contain"
+            onError={(e) => {
+              (e.target as HTMLImageElement).style.display = "none";
+            }}
+          />
+          <span>
+            {brandName}
+            <span className="text-accent">.</span>
+            {brandAccent}
+          </span>
           {isAdmin && (
-            <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-accent/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-accent">
+            <span className="ml-1 inline-flex items-center gap-1 rounded-full bg-accent/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-accent">
               <ShieldCheck className="size-3" />
               Admin
             </span>
@@ -526,6 +606,13 @@ export default function Navbar() {
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
+                      onClick={() => setLogoDialogOpen(true)}
+                      className="cursor-pointer"
+                    >
+                      <ImagePlus className="size-4 mr-2" />
+                      Ubah Logo
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
                       onClick={handleAccountOpen}
                       className="cursor-pointer"
                     >
@@ -566,10 +653,20 @@ export default function Navbar() {
               </SheetTrigger>
               <SheetContent side="right">
                 <SheetHeader>
-                  <SheetTitle className="text-left">
-                    {brandName}
-                    <span className="text-accent">.</span>
-                    {brandAccent}
+                  <SheetTitle className="text-left flex items-center gap-2">
+                    <img
+                      src={logoSrc}
+                      alt="Logo"
+                      className="size-6 rounded object-contain"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = "none";
+                      }}
+                    />
+                    <span>
+                      {brandName}
+                      <span className="text-accent">.</span>
+                      {brandAccent}
+                    </span>
                   </SheetTitle>
                 </SheetHeader>
                 <nav className="flex flex-col gap-4 px-4 mt-4">
@@ -594,6 +691,15 @@ export default function Navbar() {
                           <User className="size-3.5" />
                           {adminUsername || "admin"}
                         </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setLogoDialogOpen(true)}
+                          className="w-full text-xs"
+                        >
+                          <ImagePlus className="size-3.5 mr-1" />
+                          Ubah Logo
+                        </Button>
                         <Button
                           variant="outline"
                           size="sm"
@@ -936,6 +1042,77 @@ export default function Navbar() {
             >
               {accountLoading ? "Menyimpan..." : "Simpan Perubahan"}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ─── Logo Upload Dialog ─── */}
+      <Dialog open={logoDialogOpen} onOpenChange={setLogoDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ImagePlus className="size-5 text-accent" />
+              Ubah Logo Website
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {/* Current Logo Preview */}
+            <div className="flex flex-col items-center gap-3">
+              <p className="text-sm text-muted-foreground">Logo saat ini:</p>
+              <div className="size-24 rounded-xl border border-border bg-muted/30 flex items-center justify-center overflow-hidden">
+                <img
+                  src={logoSrc}
+                  alt="Logo saat ini"
+                  className="size-20 object-contain"
+                />
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Upload Area */}
+            <div className="space-y-3">
+              <p className="text-sm font-medium">Upload logo baru:</p>
+              <p className="text-xs text-muted-foreground">
+                Format: PNG, JPG, WEBP, atau SVG. Maksimal 3MB.
+              </p>
+              <label
+                htmlFor="logo-upload"
+                className="flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border hover:border-accent/50 bg-muted/20 p-6 cursor-pointer transition-colors"
+              >
+                {logoUploading ? (
+                  <Loader2 className="size-8 text-accent animate-spin" />
+                ) : (
+                  <ImagePlus className="size-8 text-muted-foreground" />
+                )}
+                <span className="text-sm text-muted-foreground">
+                  {logoUploading ? "Mengupload..." : "Klik untuk pilih file"}
+                </span>
+                <span className="text-xs text-muted-foreground/60">
+                  PNG, JPG, WEBP, SVG • Maks 3MB
+                </span>
+              </label>
+              <input
+                ref={fileInputRef}
+                id="logo-upload"
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                onChange={handleLogoUpload}
+                className="hidden"
+                disabled={logoUploading}
+              />
+            </div>
+
+            {logoError && (
+              <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3">
+                <p className="text-sm text-destructive">{logoError}</p>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">Tutup</Button>
+            </DialogClose>
           </DialogFooter>
         </DialogContent>
       </Dialog>

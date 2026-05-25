@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
@@ -14,6 +14,13 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+export const viewport: Viewport = {
+  themeColor: "#d97706",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+};
+
 export const metadata: Metadata = {
   title: "Alex Morgan — Developer Kreatif & Desainer",
   description:
@@ -28,13 +35,20 @@ export const metadata: Metadata = {
   ],
   authors: [{ name: "Alex Morgan" }],
   icons: {
-    icon: "/logo.svg",
+    icon: "/logo-512.png",
+    apple: "/logo-512.png",
   },
+  manifest: "/manifest.json",
   openGraph: {
     title: "Alex Morgan — Developer Kreatif & Desainer",
     description:
       "Portofolio pribadi Alex Morgan — Developer Kreatif & Desainer yang menciptakan pengalaman digital elegan.",
     type: "website",
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Website Saya",
   },
 };
 
@@ -45,6 +59,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="id" suppressHydrationWarning>
+      <head>
+        <link rel="apple-touch-icon" href="/logo-512.png" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="mobile-web-app-capable" content="yes" />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
       >
@@ -69,6 +88,18 @@ export default function RootLayout({
           {children}
           <Toaster />
         </ThemeProvider>
+        {/* PWA Service Worker Registration */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function() {
+                  navigator.serviceWorker.register('/sw.js').catch(function() {});
+                });
+              }
+            `,
+          }}
+        />
       </body>
     </html>
   );
