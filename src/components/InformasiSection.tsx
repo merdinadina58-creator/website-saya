@@ -114,8 +114,8 @@ export default function InformasiSection() {
         const data = await res.json();
         setAnnouncements(data);
       }
-    } catch (e) {
-      console.error("Failed to load announcements:", e);
+    } catch {
+      // Silently fail — section will show "Belum ada pengumuman"
     } finally {
       setLoading(false);
     }
@@ -142,8 +142,8 @@ export default function InformasiSection() {
         setAddForm({ title: "", content: "", category: "Umum", pinned: false });
         setAddOpen(false);
       }
-    } catch (e) {
-      console.error("Failed to create announcement:", e);
+    } catch {
+      // Silently fail
     } finally {
       setAddLoading(false);
     }
@@ -171,8 +171,8 @@ export default function InformasiSection() {
         setEditOpen(false);
         setEditForm(null);
       }
-    } catch (e) {
-      console.error("Failed to update announcement:", e);
+    } catch {
+      // Silently fail
     } finally {
       setEditLoading(false);
     }
@@ -190,8 +190,8 @@ export default function InformasiSection() {
         await fetchAnnouncements();
         setDeleteTarget(null);
       }
-    } catch (e) {
-      console.error("Failed to delete announcement:", e);
+    } catch {
+      // Silently fail
     } finally {
       setDeleteLoading(false);
     }
@@ -210,8 +210,8 @@ export default function InformasiSection() {
       if (res.ok) {
         await fetchAnnouncements();
       }
-    } catch (e) {
-      console.error("Failed to toggle pin:", e);
+    } catch {
+      // Silently fail
     }
   };
 

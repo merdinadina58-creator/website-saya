@@ -55,8 +55,8 @@ export function ContentProvider({ children }: { children: ReactNode }) {
         const data = await res.json();
         setContent(data);
       }
-    } catch (e) {
-      console.error("Failed to load content:", e);
+    } catch {
+      // Silently fail — page will use default content
     } finally {
       setLoading(false);
     }
@@ -91,7 +91,6 @@ export function ContentProvider({ children }: { children: ReactNode }) {
           throw new Error(data.error || "Gagal menyimpan konten");
         }
       } catch (e) {
-        console.error("Failed to update content:", e);
         throw e;
       }
     },

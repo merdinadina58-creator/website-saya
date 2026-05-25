@@ -153,6 +153,7 @@ export default function AboutSection() {
                 src="/avatar.png"
                 alt="Alex Morgan — Developer Kreatif & Desainer"
                 fill
+                sizes="(max-width: 640px) 100vw, 384px"
                 className="object-cover"
                 priority
               />
