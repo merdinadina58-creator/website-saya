@@ -13,6 +13,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { useContent } from "@/components/ContentProvider";
+import { useAdmin } from "@/components/AdminProvider";
 
 interface FooterSocial {
   icon: string;
@@ -51,6 +52,7 @@ const socialIconMap: Record<string, React.ReactNode> = {
 export default function FooterSection() {
   const { content, updateContent } = useContent();
   const footer = (content.footer as FooterData) || defaultFooter;
+  const { isAdmin } = useAdmin();
 
   const [editOpen, setEditOpen] = useState(false);
   const [form, setForm] = useState<FooterData>(defaultFooter);
@@ -106,13 +108,15 @@ export default function FooterSection() {
   return (
     <footer className="border-t border-border bg-card/50 relative">
       {/* Edit Button */}
-      <button
-        onClick={handleEditOpen}
-        className="absolute top-4 right-4 z-10 flex size-9 items-center justify-center rounded-full bg-accent/10 text-accent hover:bg-accent/20 transition-colors"
-        aria-label="Edit seksi"
-      >
-        <Pencil className="size-4" />
-      </button>
+      {isAdmin && (
+        <button
+          onClick={handleEditOpen}
+          className="absolute top-4 right-4 z-10 flex size-9 items-center justify-center rounded-full bg-accent/10 text-accent hover:bg-accent/20 transition-colors"
+          aria-label="Edit seksi"
+        >
+          <Pencil className="size-4" />
+        </button>
+      )}
 
       <div className="mx-auto max-w-6xl px-4 sm:px-6 py-10">
         <div className="flex flex-col md:flex-row items-center justify-between gap-6">

@@ -24,6 +24,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { useContent } from "@/components/ContentProvider";
+import { useAdmin } from "@/components/AdminProvider";
 
 interface Project {
   id: string;
@@ -107,6 +108,7 @@ const defaultPortfolio: PortfolioData = {
 export default function PortfolioSection() {
   const { content, updateContent } = useContent();
   const portfolio = (content.portfolio as PortfolioData) || defaultPortfolio;
+  const { isAdmin } = useAdmin();
 
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-100px" });
@@ -179,13 +181,15 @@ export default function PortfolioSection() {
   return (
     <section id="portfolio" className="py-20 sm:py-28 relative" ref={ref}>
       {/* Edit Button */}
-      <button
-        onClick={handleEditOpen}
-        className="absolute top-4 right-4 z-10 flex size-9 items-center justify-center rounded-full bg-accent/10 text-accent hover:bg-accent/20 transition-colors"
-        aria-label="Edit seksi"
-      >
-        <Pencil className="size-4" />
-      </button>
+      {isAdmin && (
+        <button
+          onClick={handleEditOpen}
+          className="absolute top-4 right-4 z-10 flex size-9 items-center justify-center rounded-full bg-accent/10 text-accent hover:bg-accent/20 transition-colors"
+          aria-label="Edit seksi"
+        >
+          <Pencil className="size-4" />
+        </button>
+      )}
 
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         {/* Section Header */}

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { verifyAdminFromHeader } from "@/lib/auth";
 
 export async function GET(
   _request: NextRequest,
@@ -36,6 +37,14 @@ export async function PUT(
   { params }: { params: Promise<{ key: string }> }
 ) {
   try {
+    // Auth check
+    if (!(await verifyAdminFromHeader(request))) {
+      return NextResponse.json(
+        { error: "Tidak memiliki akses. Silakan login terlebih dahulu." },
+        { status: 401 }
+      );
+    }
+
     const { key } = await params;
     const body = await request.json();
     const { value } = body;
@@ -73,10 +82,18 @@ export async function PUT(
 }
 
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ key: string }> }
 ) {
   try {
+    // Auth check
+    if (!(await verifyAdminFromHeader(request))) {
+      return NextResponse.json(
+        { error: "Tidak memiliki akses. Silakan login terlebih dahulu." },
+        { status: 401 }
+      );
+    }
+
     const { key } = await params;
     const content = await db.siteContent.findUnique({ where: { key } });
 

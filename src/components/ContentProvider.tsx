@@ -17,6 +17,7 @@ interface ContentData {
   contact?: Record<string, unknown>;
   footer?: Record<string, unknown>;
   apps?: unknown[];
+  navbar?: Record<string, unknown>;
   [key: string]: unknown;
 }
 
@@ -33,6 +34,13 @@ export function useContent() {
   const ctx = useContext(ContentContext);
   if (!ctx) throw new Error("useContent must be used within ContentProvider");
   return ctx;
+}
+
+function getAuthHeaders(): Record<string, string> {
+  if (typeof window === "undefined") return {};
+  const password = localStorage.getItem("adminPassword");
+  if (!password) return {};
+  return { "x-admin-password": password };
 }
 
 export function ContentProvider({ children }: { children: ReactNode }) {
@@ -62,11 +70,23 @@ export function ContentProvider({ children }: { children: ReactNode }) {
       try {
         const res = await fetch(`/api/content/${key}`, {
           method: "PUT",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            ...getAuthHeaders(),
+          },
           body: JSON.stringify({ value }),
         });
         if (res.ok) {
           setContent((prev) => ({ ...prev, [key]: value }));
+        } else if (res.status === 401) {
+          // Session expired — clear admin state
+          localStorage.removeItem("isAdmin");
+          localStorage.removeItem("adminPassword");
+          window.location.reload();
+          throw new Error("Sesi admin berakhir. Silakan login kembali.");
+        } else {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.error || "Gagal menyimpan konten");
         }
       } catch (e) {
         console.error("Failed to update content:", e);

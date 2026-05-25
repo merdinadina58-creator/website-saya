@@ -14,6 +14,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { useContent } from "@/components/ContentProvider";
+import { useAdmin } from "@/components/AdminProvider";
 
 const defaultHero = {
   name: "Alex Morgan",
@@ -28,6 +29,7 @@ const defaultHero = {
 export default function HeroSection() {
   const { content, updateContent } = useContent();
   const hero = (content.hero as typeof defaultHero) || defaultHero;
+  const { isAdmin } = useAdmin();
 
   const [editOpen, setEditOpen] = useState(false);
   const [form, setForm] = useState(defaultHero);
@@ -59,13 +61,15 @@ export default function HeroSection() {
       className="relative flex min-h-screen items-center justify-center overflow-hidden"
     >
       {/* Edit Button */}
-      <button
-        onClick={handleEditOpen}
-        className="absolute top-24 right-4 z-10 flex size-9 items-center justify-center rounded-full bg-accent/10 text-accent hover:bg-accent/20 transition-colors"
-        aria-label="Edit seksi"
-      >
-        <Pencil className="size-4" />
-      </button>
+      {isAdmin && (
+        <button
+          onClick={handleEditOpen}
+          className="absolute top-24 right-4 z-10 flex size-9 items-center justify-center rounded-full bg-accent/10 text-accent hover:bg-accent/20 transition-colors"
+          aria-label="Edit seksi"
+        >
+          <Pencil className="size-4" />
+        </button>
+      )}
 
       {/* Background Image */}
       <div
