@@ -11,7 +11,6 @@ import {
   Plus,
   ExternalLink,
   Trash2,
-  GripVertical,
   Globe,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -52,17 +51,11 @@ const navLinks = [
 
 const STORAGE_KEY = "my-apps-list";
 
-const emptySubscribe = () => () => {};
-function useMounted() {
-  return useSyncExternalStore(
-    emptySubscribe,
-    () => true,
-    () => false
-  );
-}
+// ── External store untuk aplikasi (localStorage) ──
+let appsListeners: (() => void)[] = [];
+let appsCache: AppItem[] | null = null;
 
-function loadApps(): AppItem[] {
-  if (typeof window === "undefined") return defaultApps;
+function loadAppsFromStorage(): AppItem[] {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
@@ -75,18 +68,48 @@ function loadApps(): AppItem[] {
   return defaultApps;
 }
 
-function saveApps(apps: AppItem[]) {
+function getAppsSnapshot(): AppItem[] {
+  if (appsCache === null) {
+    appsCache = loadAppsFromStorage();
+  }
+  return appsCache;
+}
+
+function getAppsServerSnapshot(): AppItem[] {
+  return defaultApps;
+}
+
+function subscribeToApps(callback: () => void): () => void {
+  appsListeners = [...appsListeners, callback];
+  return () => {
+    appsListeners = appsListeners.filter((l) => l !== callback);
+  };
+}
+
+function updateAppsStore(newApps: AppItem[]) {
+  appsCache = newApps;
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(apps));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(newApps));
   } catch {
     // ignore
   }
+  for (const listener of appsListeners) {
+    listener();
+  }
+}
+
+// ── useMounted hook ──
+const emptySubscribe = () => () => {};
+function useMounted() {
+  return useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false
+  );
 }
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
-  const [apps, setApps] = useState<AppItem[]>([]);
-  const [appsLoaded, setAppsLoaded] = useState(false);
   const [newName, setNewName] = useState("");
   const [newUrl, setNewUrl] = useState("");
   const [addDialogOpen, setAddDialogOpen] = useState(false);
@@ -94,16 +117,8 @@ export default function Navbar() {
   const mounted = useMounted();
   const { theme, setTheme } = useTheme();
 
-  // Load apps from localStorage after hydration
-  const isClient = useSyncExternalStore(
-    emptySubscribe,
-    () => true,
-    () => false
-  );
-  if (isClient && !appsLoaded) {
-    setApps(loadApps());
-    setAppsLoaded(true);
-  }
+  // Read apps from external store (syncs with localStorage, no hydration mismatch)
+  const apps = useSyncExternalStore(subscribeToApps, getAppsSnapshot, getAppsServerSnapshot);
 
   const handleAddApp = useCallback(() => {
     const name = newName.trim();
@@ -112,9 +127,7 @@ export default function Navbar() {
     if (!url.startsWith("http://") && !url.startsWith("https://")) {
       url = "https://" + url;
     }
-    const updated = [...apps, { name, url }];
-    setApps(updated);
-    saveApps(updated);
+    updateAppsStore([...apps, { name, url }]);
     setNewName("");
     setNewUrl("");
     setAddDialogOpen(false);
@@ -124,8 +137,7 @@ export default function Navbar() {
   const handleRemoveApp = useCallback(
     (index: number) => {
       const updated = apps.filter((_, i) => i !== index);
-      setApps(updated);
-      saveApps(updated);
+      updateAppsStore(updated);
     },
     [apps]
   );
@@ -209,7 +221,7 @@ export default function Navbar() {
                 )}
                 {apps.map((app, i) => (
                   <DropdownMenuItem
-                    key={i}
+                    key={`${app.name}-${i}`}
                     className="flex items-center gap-3 p-2 rounded-lg cursor-pointer group/item focus:bg-accent/10"
                     onSelect={(e) => e.preventDefault()}
                   >
@@ -415,7 +427,7 @@ export default function Navbar() {
                       )}
                       {apps.map((app, i) => (
                         <div
-                          key={i}
+                          key={`${app.name}-${i}`}
                           className="flex items-center gap-3 p-3 rounded-lg border border-border/50 hover:border-accent/30 hover:bg-accent/5 transition-all duration-200 group/item"
                         >
                           <a
