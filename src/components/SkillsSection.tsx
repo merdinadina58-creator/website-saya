@@ -93,7 +93,7 @@ const iconMap: Record<string, React.ReactNode> = {
 
 export default function SkillsSection() {
   const { content, updateContent } = useContent();
-  const skills = (content.skills as SkillsData) || defaultSkills;
+  const skills = (content.skills as unknown as SkillsData) || defaultSkills;
   const { isAdmin } = useAdmin();
 
   const ref = useRef(null);

@@ -107,7 +107,7 @@ const defaultPortfolio: PortfolioData = {
 
 export default function PortfolioSection() {
   const { content, updateContent } = useContent();
-  const portfolio = (content.portfolio as PortfolioData) || defaultPortfolio;
+  const portfolio = (content.portfolio as unknown as PortfolioData) || defaultPortfolio;
   const { isAdmin } = useAdmin();
 
   const ref = useRef(null);

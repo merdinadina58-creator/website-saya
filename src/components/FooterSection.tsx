@@ -51,7 +51,7 @@ const socialIconMap: Record<string, React.ReactNode> = {
 
 export default function FooterSection() {
   const { content, updateContent } = useContent();
-  const footer = (content.footer as FooterData) || defaultFooter;
+  const footer = (content.footer as unknown as FooterData) || defaultFooter;
   const { isAdmin } = useAdmin();
 
   const [editOpen, setEditOpen] = useState(false);

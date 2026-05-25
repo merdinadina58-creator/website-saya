@@ -96,7 +96,7 @@ const socialIconMap: Record<string, React.ReactNode> = {
 
 export default function ContactSection() {
   const { content, updateContent } = useContent();
-  const contact = (content.contact as ContactData) || defaultContact;
+  const contact = (content.contact as unknown as ContactData) || defaultContact;
   const { isAdmin } = useAdmin();
 
   const ref = useRef(null);
