@@ -134,6 +134,29 @@ export default function Navbar() {
   const [logoDialogOpen, setLogoDialogOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // localStorage key for logo persistence (fallback on Vercel/serverless)
+  const LOGO_LS_KEY = "website-logo";
+
+  // Save logo data to localStorage
+  const saveLogoToLocalStorage = useCallback((logoData: { src: string; uploadedAt?: string; originalName?: string; size?: number; mimeType?: string }) => {
+    try {
+      localStorage.setItem(LOGO_LS_KEY, JSON.stringify(logoData));
+    } catch {
+      // localStorage might be full or unavailable
+    }
+  }, []);
+
+  // Load logo data from localStorage
+  const loadLogoFromLocalStorage = useCallback((): { src: string; uploadedAt?: string; originalName?: string; size?: number; mimeType?: string } | null => {
+    try {
+      const stored = localStorage.getItem(LOGO_LS_KEY);
+      if (stored) return JSON.parse(stored);
+    } catch {
+      // Invalid JSON, ignore
+    }
+    return null;
+  }, []);
+
   // Update favicon dynamically when logo changes
   const updateFavicon = useCallback((src: string) => {
     try {
@@ -181,27 +204,36 @@ export default function Navbar() {
   const brandName = footer?.brandName || "Alex";
   const brandAccent = footer?.brandAccent || "Morgan";
 
-  // Fetch current logo
+  // Fetch current logo — check localStorage first, then API
   useEffect(() => {
+    // First check localStorage for logo (works on Vercel where DB is ephemeral)
+    const localLogo = loadLogoFromLocalStorage();
+    if (localLogo?.src) {
+      setLogoSrc(localLogo.src);
+    }
+
+    // Then try API (DB might have newer data on local server)
     fetch("/api/logo")
       .then((res) => {
         if (!res.ok) return null;
         return res.json();
       })
       .then((data) => {
-        if (data?.src) {
-          // If it's a base64 data URL, check size - only use if reasonable
-          if (data.src.startsWith("data:") && data.size > 500000) {
-            // Large base64 images in img src can cause performance issues
-            // Use a smaller version or the default
-            setLogoSrc("/logo-512.png");
-          } else {
-            setLogoSrc(data.src);
-          }
+        if (data?.src && data.src !== "/logo-512.png") {
+          // API has real logo data — use it and update localStorage
+          setLogoSrc(data.src);
+          saveLogoToLocalStorage(data);
+        } else if (!localLogo?.src) {
+          // No localStorage data and API returned default — show default
+          setLogoSrc("/logo-512.png");
         }
+        // If localStorage has data but API returned default (Vercel scenario),
+        // keep the localStorage data (already set above)
       })
-      .catch(() => {});
-  }, []);
+      .catch(() => {
+        // API failed — localStorage data (if any) is already set above
+      });
+  }, [loadLogoFromLocalStorage, saveLogoToLocalStorage]);
 
   // Logo upload handler
   const handleLogoUpload = useCallback(
@@ -239,10 +271,23 @@ export default function Navbar() {
         if (res.ok) {
           // Handle data URL vs regular path
           const newSrc = data.logo?.src || "/logo-512.png";
-          if (newSrc.startsWith("data:") && data.logo?.size > 500000) {
-            setLogoSrc("/logo-512.png?t=" + Date.now());
+          const logoSize = data.logo?.size || 0;
+
+          // Save logo to localStorage for persistence (works on Vercel)
+          saveLogoToLocalStorage({
+            src: newSrc,
+            uploadedAt: data.logo?.uploadedAt,
+            originalName: data.logo?.originalName,
+            size: logoSize,
+            mimeType: data.logo?.mimeType,
+          });
+
+          // For display: use the base64 data URL directly (localStorage handles persistence)
+          // No need to reject large images since we store in localStorage
+          if (newSrc.startsWith("data:")) {
+            setLogoSrc(newSrc);
           } else {
-            setLogoSrc(newSrc.startsWith("data:") ? newSrc : newSrc + "?t=" + Date.now());
+            setLogoSrc(newSrc + "?t=" + Date.now());
           }
           // Update browser favicon dynamically
           updateFavicon(newSrc);
@@ -251,14 +296,34 @@ export default function Navbar() {
           setLogoError(data.error || "Gagal mengupload logo");
         }
       } catch {
-        setLogoError("Gagal mengupload logo. Coba lagi.");
+        // API call failed (e.g., network error) — try client-side fallback
+        // Convert image to base64 locally and save to localStorage
+        try {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const dataUrl = reader.result as string;
+            saveLogoToLocalStorage({
+              src: dataUrl,
+              uploadedAt: new Date().toISOString(),
+              originalName: file.name,
+              size: file.size,
+              mimeType: file.type,
+            });
+            setLogoSrc(dataUrl);
+            updateFavicon(dataUrl);
+            setLogoDialogOpen(false);
+          };
+          reader.readAsDataURL(file);
+        } catch {
+          setLogoError("Gagal mengupload logo. Coba lagi.");
+        }
       } finally {
         setLogoUploading(false);
         // Reset file input
         if (fileInputRef.current) fileInputRef.current.value = "";
       }
     },
-    [getAuthHeaders]
+    [getAuthHeaders, saveLogoToLocalStorage, updateFavicon]
   );
 
   const handleAddApp = useCallback(async () => {
