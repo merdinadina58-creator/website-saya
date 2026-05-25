@@ -111,10 +111,12 @@ export default function FooterSection() {
       {isAdmin && (
         <button
           onClick={handleEditOpen}
-          className="absolute top-4 right-4 z-10 flex size-9 items-center justify-center rounded-full bg-accent/10 text-accent hover:bg-accent/20 transition-colors"
-          aria-label="Edit seksi"
+          className="absolute top-4 right-4 z-10 flex items-center gap-1.5 rounded-full bg-accent/20 px-3 py-1.5 text-sm font-medium text-accent hover:bg-accent/30 transition-colors animate-pulse"
+          aria-label="Edit seksi footer"
+          style={{ animationDuration: "3s", animationIterationCount: "2" }}
         >
-          <Pencil className="size-4" />
+          <Pencil className="size-3.5" />
+          Edit
         </button>
       )}
 

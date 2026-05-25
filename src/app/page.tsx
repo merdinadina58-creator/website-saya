@@ -8,6 +8,7 @@ import AboutSection from "@/components/AboutSection";
 import InformasiSection from "@/components/InformasiSection";
 import ContactSection from "@/components/ContactSection";
 import FooterSection from "@/components/FooterSection";
+import AdminToolbar from "@/components/AdminToolbar";
 
 export default function Home() {
   return (
@@ -24,6 +25,7 @@ export default function Home() {
           <footer className="mt-auto">
             <FooterSection />
           </footer>
+          <AdminToolbar />
         </div>
       </ContentProvider>
     </AdminProvider>
