@@ -16,6 +16,43 @@ function getLogoFromLocalStorage(): { src: string; mimeType?: string } | null {
   return null;
 }
 
+/**
+ * Force-update the browser favicon by removing ALL existing favicon links
+ * and creating fresh ones. Browsers aggressively cache favicons, so simply
+ * changing the href attribute often doesn't work.
+ */
+function forceUpdateFavicon(dataUrl: string) {
+  // Remove ALL existing favicon/icon link elements
+  const existingIcons = document.querySelectorAll('link[rel="icon"], link[rel="shortcut icon"]');
+  existingIcons.forEach((el) => el.remove());
+
+  // Remove existing apple-touch-icon links
+  const existingApple = document.querySelectorAll('link[rel="apple-touch-icon"]');
+  existingApple.forEach((el) => el.remove());
+
+  // Create new favicon link with the data URL
+  const newIcon = document.createElement("link");
+  newIcon.rel = "icon";
+  newIcon.type = "image/png";
+  newIcon.href = dataUrl;
+  newIcon.id = "dynamic-favicon";
+  document.head.appendChild(newIcon);
+
+  // Also add a shortcut icon for older browsers
+  const shortcutIcon = document.createElement("link");
+  shortcutIcon.rel = "shortcut icon";
+  shortcutIcon.type = "image/png";
+  shortcutIcon.href = dataUrl;
+  document.head.appendChild(shortcutIcon);
+
+  // Create new apple-touch-icon
+  const newApple = document.createElement("link");
+  newApple.rel = "apple-touch-icon";
+  newApple.href = dataUrl;
+  newApple.id = "dynamic-apple-icon";
+  document.head.appendChild(newApple);
+}
+
 export default function DynamicTitle() {
   const { content } = useContent();
 
@@ -23,29 +60,7 @@ export default function DynamicTitle() {
   const updateFaviconFromLocalStorage = useCallback(() => {
     const logoData = getLogoFromLocalStorage();
     if (!logoData?.src) return;
-
-    // Update favicon link tags with base64 data URL
-    const dynamicFavicon = document.getElementById("dynamic-favicon") as HTMLLinkElement;
-    if (dynamicFavicon) {
-      dynamicFavicon.href = logoData.src;
-    }
-
-    // Also update the static favicon link
-    const staticFavicon = document.querySelector('link[rel="icon"][href="/favicon.ico"]') as HTMLLinkElement;
-    if (staticFavicon) {
-      staticFavicon.href = logoData.src;
-    }
-
-    // Update apple touch icon
-    const dynamicAppleIcon = document.getElementById("dynamic-apple-icon") as HTMLLinkElement;
-    if (dynamicAppleIcon) {
-      dynamicAppleIcon.href = logoData.src;
-    }
-
-    const staticAppleIcon = document.querySelector('link[rel="apple-touch-icon"]') as HTMLLinkElement;
-    if (staticAppleIcon) {
-      staticAppleIcon.href = logoData.src;
-    }
+    forceUpdateFavicon(logoData.src);
   }, []);
 
   // Update PWA manifest dynamically with logo from localStorage
@@ -53,15 +68,16 @@ export default function DynamicTitle() {
     const logoData = getLogoFromLocalStorage();
     if (!logoData?.src) return;
 
-    // For PWA manifest icons, we can't use data URLs directly in all browsers
-    // Instead, create a dynamic manifest using blob URLs
     try {
+      const hero = content.hero as { name?: string; title?: string } | undefined;
+      const siteName = hero?.name || "Website Saya";
+
       const manifest = {
-        name: document.title || "Website Saya",
-        short_name: "WebsiteSaya",
-        description: "Portofolio pribadi — Developer Kreatif & Desainer yang menciptakan pengalaman digital elegan.",
+        name: siteName,
+        short_name: siteName.split(" ")[0] || "WebsiteSaya",
+        description: `Portofolio pribadi ${siteName} yang menciptakan pengalaman digital elegan.`,
         start_url: "/",
-        display: "standalone" as const,
+        display: "standalone",
         background_color: "#0a0a0a",
         theme_color: "#d97706",
         orientation: "portrait-primary",
@@ -87,11 +103,16 @@ export default function DynamicTitle() {
       const existingManifest = document.querySelector('link[rel="manifest"]') as HTMLLinkElement;
       if (existingManifest) {
         existingManifest.href = manifestUrl;
+      } else {
+        const newManifest = document.createElement("link");
+        newManifest.rel = "manifest";
+        newManifest.href = manifestUrl;
+        document.head.appendChild(newManifest);
       }
     } catch {
       // Manifest update is non-critical
     }
-  }, []);
+  }, [content.hero]);
 
   // Update page title from hero content
   useEffect(() => {
@@ -124,11 +145,11 @@ export default function DynamicTitle() {
     }
   }, [content.hero]);
 
-  // Update favicon and manifest on mount and when content changes
+  // Update favicon and manifest on mount
   useEffect(() => {
     updateFaviconFromLocalStorage();
     updateManifestFromLocalStorage();
-  }, [updateFaviconFromLocalStorage, updateManifestFromLocalStorage, content]);
+  }, [updateFaviconFromLocalStorage, updateManifestFromLocalStorage]);
 
   return null;
 }

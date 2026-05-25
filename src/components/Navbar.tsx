@@ -157,34 +157,48 @@ export default function Navbar() {
     return null;
   }, []);
 
-  // Update favicon dynamically when logo changes — use base64 data URL directly
+  // Update favicon dynamically when logo changes — force replace all icon links
+  // Browsers aggressively cache favicons, so we must remove old links and create new ones
   const updateFavicon = useCallback((src: string) => {
     try {
-      // Update the dynamic favicon link tag with the logo data URL directly
-      const dynamicFavicon = document.getElementById("dynamic-favicon") as HTMLLinkElement;
-      if (dynamicFavicon) {
-        dynamicFavicon.href = src;
-      }
-      // Also update the static favicon link
-      const staticFavicon = document.querySelector('link[rel="icon"][href="/favicon.ico"]') as HTMLLinkElement;
-      if (staticFavicon) {
-        staticFavicon.href = src;
-      }
-      // Update apple touch icon
-      const dynamicAppleIcon = document.getElementById("dynamic-apple-icon") as HTMLLinkElement;
-      if (dynamicAppleIcon) {
-        dynamicAppleIcon.href = src;
-      }
-      const staticAppleIcon = document.querySelector('link[rel="apple-touch-icon"]') as HTMLLinkElement;
-      if (staticAppleIcon) {
-        staticAppleIcon.href = src;
-      }
+      // Remove ALL existing favicon/icon link elements
+      const existingIcons = document.querySelectorAll('link[rel="icon"], link[rel="shortcut icon"]');
+      existingIcons.forEach((el) => el.remove());
+
+      // Remove existing apple-touch-icon links
+      const existingApple = document.querySelectorAll('link[rel="apple-touch-icon"]');
+      existingApple.forEach((el) => el.remove());
+
+      // Create new favicon link with the data URL
+      const newIcon = document.createElement("link");
+      newIcon.rel = "icon";
+      newIcon.type = "image/png";
+      newIcon.href = src;
+      newIcon.id = "dynamic-favicon";
+      document.head.appendChild(newIcon);
+
+      // Also add shortcut icon for older browsers
+      const shortcutIcon = document.createElement("link");
+      shortcutIcon.rel = "shortcut icon";
+      shortcutIcon.type = "image/png";
+      shortcutIcon.href = src;
+      document.head.appendChild(shortcutIcon);
+
+      // Create new apple-touch-icon
+      const newApple = document.createElement("link");
+      newApple.rel = "apple-touch-icon";
+      newApple.href = src;
+      newApple.id = "dynamic-apple-icon";
+      document.head.appendChild(newApple);
+
       // Update PWA manifest dynamically
       try {
+        const hero = content.hero as { name?: string } | undefined;
+        const siteName = hero?.name || "Website Saya";
         const manifest = {
-          name: document.title || "Website Saya",
-          short_name: "WebsiteSaya",
-          description: "Portofolio pribadi — Developer Kreatif & Desainer yang menciptakan pengalaman digital elegan.",
+          name: siteName,
+          short_name: siteName.split(" ")[0] || "WebsiteSaya",
+          description: `Portofolio pribadi ${siteName} yang menciptakan pengalaman digital elegan.`,
           start_url: "/",
           display: "standalone",
           background_color: "#0a0a0a",
@@ -207,7 +221,7 @@ export default function Navbar() {
     } catch {
       // Favicon update is non-critical, ignore errors
     }
-  }, []);
+  }, [content.hero]);
 
   // Admin state
   const { isAdmin, adminUsername, login, logout, getAuthHeaders } = useAdmin();
