@@ -1,25 +1,23 @@
 ---
 Task ID: 1
 Agent: Main Agent
-Task: Add admin authentication system to protect edit features on the personal website
+Task: Add Informasi/Pengumuman feature to the personal website
 
 Work Log:
-- Explored current project structure and read all component files
-- Created `src/lib/auth.ts` with password verification and admin header checking utilities
-- Created `src/components/AdminProvider.tsx` with useSyncExternalStore-based admin state (hydration-safe)
-- Created `src/app/api/auth/login/route.ts` - POST endpoint for login
-- Created `src/app/api/auth/password/route.ts` - PUT endpoint for changing password
-- Updated `src/app/api/content/route.ts` - Added auth check for POST (skips internal keys starting with _)
-- Updated `src/app/api/content/[key]/route.ts` - Added auth check for PUT and DELETE
-- Updated `src/components/ContentProvider.tsx` - Sends x-admin-password header with mutating requests, handles 401 by auto-logout
-- Updated `src/app/page.tsx` - Wrapped with AdminProvider outside ContentProvider
-- Updated `src/components/Navbar.tsx` - Added Lock icon (login) / ShieldCheck icon (admin menu) with login dialog, password change dialog, admin badge in brand, gated apps add/delete behind admin state
-- Updated all 6 section components (Hero, About, Skills, Portfolio, Contact, Footer) - Edit buttons only visible when admin is logged in
+- Reviewed existing project structure (Prisma schema, API routes, components, AdminProvider, ContentProvider)
+- Confirmed password show/hide toggle from previous session was already implemented
+- Added `Announcement` model to Prisma schema (id, title, content, category, pinned, createdAt, updatedAt)
+- Pushed schema to database and regenerated Prisma client
+- Created API routes: GET /api/announcements (public), POST /api/announcements (admin), PUT /api/announcements/[id] (admin), DELETE /api/announcements/[id] (admin)
+- Created InformasiSection component with: search bar, category filters, pinned/regular announcement display, admin controls (add, edit, delete, pin/unpin)
+- Added "Informasi" link to navbar navigation
+- Integrated InformasiSection into main page (between Portfolio and Contact)
+- Restarted dev server, verified API returns 200, lint passes clean
 
 Stage Summary:
-- Default admin password: "admin123" (can be changed via UI)
-- API routes are protected: POST, PUT, DELETE require x-admin-password header
-- GET content endpoint skips internal keys (starting with _)
-- Admin state persisted in localStorage (isAdmin + adminPassword)
-- Hydration-safe using useSyncExternalStore with server/client snapshots
-- No lint errors, all API routes tested and working
+- New Prisma model: Announcement (title, content, category, pinned)
+- New API routes: /api/announcements (GET, POST), /api/announcements/[id] (PUT, DELETE)
+- New component: src/components/InformasiSection.tsx (full CRUD for admin, public view for visitors)
+- Categories: Umum, SPMB, Kelulusan, Penting (each with unique color badge)
+- Features: search, filter by category, pin/unpin announcements, relative time display
+- All admin actions require authentication via x-admin-username/x-admin-password headers

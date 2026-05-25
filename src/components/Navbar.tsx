@@ -56,6 +56,7 @@ const navLinks = [
   { label: "Tentang", href: "#about" },
   { label: "Keahlian", href: "#skills" },
   { label: "Portofolio", href: "#portfolio" },
+  { label: "Informasi", href: "#informasi" },
   { label: "Kontak", href: "#contact" },
 ];
 

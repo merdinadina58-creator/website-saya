@@ -14,3 +14,13 @@ model SiteContent {
   updatedAt DateTime @updatedAt
   createdAt DateTime @default(now())
 }
+
+model Announcement {
+  id        String   @id @default(cuid())
+  title     String
+  content   String
+  category  String   @default("Umum")
+  pinned    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
