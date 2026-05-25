@@ -46,6 +46,14 @@ export default function HeroSection() {
     setSaving(true);
     try {
       await updateContent("hero", form);
+      // Sync name to footer brandName/brandAccent so navbar and footer stay consistent
+      const nameParts = (form.name || "").split(" ");
+      const currentFooter = (content.footer as Record<string, unknown>) || {};
+      await updateContent("footer", {
+        ...currentFooter,
+        brandName: nameParts[0] || "Alex",
+        brandAccent: nameParts.slice(1).join(" ") || "Morgan",
+      });
       setEditOpen(false);
       toast({ title: "Berhasil", description: "Konten hero berhasil diperbarui" });
     } catch (e) {

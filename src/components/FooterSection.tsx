@@ -73,6 +73,12 @@ export default function FooterSection() {
     setSaving(true);
     try {
       await updateContent("footer", form);
+      // Sync brand name back to hero so everything stays consistent
+      const currentHero = (content.hero as Record<string, unknown>) || {};
+      await updateContent("hero", {
+        ...currentHero,
+        name: `${form.brandName} ${form.brandAccent}`.trim(),
+      });
       setEditOpen(false);
       toast({ title: "Berhasil", description: "Konten berhasil diperbarui" });
     } catch (e) {

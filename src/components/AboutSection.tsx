@@ -29,7 +29,7 @@ const defaultAbout = {
   heading:
     "Seorang developer dengan mata desainer dan passion untuk kode bersih.",
   paragraphs: [
-    "Saya Alex Morgan, seorang developer kreatif dan desainer yang berbasis di Jakarta. Dengan pengalaman lebih dari lima tahun, saya spesialisasi dalam membangun aplikasi web yang indah dan berkinerja tinggi yang menjembatani kesenjangan antara estetika dan fungsionalitas.",
+    "Saya {name}, seorang developer kreatif dan desainer yang berbasis di Jakarta. Dengan pengalaman lebih dari lima tahun, saya spesialisasi dalam membangun aplikasi web yang indah dan berkinerja tinggi yang menjembatani kesenjangan antara estetika dan fungsionalitas.",
     "Perjalanan saya dimulai dari desain grafis, yang memberikan saya perspektif unik tentang pengalaman pengguna. Saya percaya bahwa perangkat lunak yang hebat tidak hanya harus berfungsi — tetapi juga harus memberikan kegembiraan. Setiap proyek yang saya ambil adalah kesempatan untuk menciptakan sesuatu yang bermakna dan berkesan.",
     "Saat tidak coding, Anda akan menemukan saya menjelajahi tipografi, bereksperimen dengan seni generatif, atau mendaki jalur pegunungan di Indonesia.",
   ],
@@ -44,6 +44,8 @@ const defaultAbout = {
 export default function AboutSection() {
   const { content, updateContent } = useContent();
   const about = (content.about as typeof defaultAbout) || defaultAbout;
+  const hero = content.hero as { name?: string } | undefined;
+  const displayName = hero?.name || "Alex Morgan";
   const { isAdmin } = useAdmin();
   const { toast } = useToast();
 
@@ -156,7 +158,7 @@ export default function AboutSection() {
             <div className="relative aspect-square overflow-hidden rounded-2xl">
               <Image
                 src="/avatar.png"
-                alt="Alex Morgan — Developer Kreatif & Desainer"
+                alt={`${displayName} — Developer Kreatif & Desainer`}
                 fill
                 sizes="(max-width: 640px) 100vw, 384px"
                 className="object-cover"
@@ -178,7 +180,7 @@ export default function AboutSection() {
             </h3>
             <div className="space-y-4 text-muted-foreground leading-relaxed">
               {about.paragraphs.map((p, i) => (
-                <p key={i}>{p}</p>
+                <p key={i}>{p.replace(/{name}/g, displayName)}</p>
               ))}
             </div>
           </motion.div>

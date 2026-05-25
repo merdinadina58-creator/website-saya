@@ -199,10 +199,14 @@ export default function Navbar() {
   const { content, updateContent } = useContent();
   const apps = (content.apps as AppItem[]) || defaultApps;
 
-  // Navbar brand from content
+  // Navbar brand from content — derive from hero name (single source of truth)
+  // Hero name is the primary name; footer brandName/brandAccent are fallback
+  const hero = content.hero as { name?: string } | undefined;
   const footer = content.footer as { brandName?: string; brandAccent?: string } | undefined;
-  const brandName = footer?.brandName || "Alex";
-  const brandAccent = footer?.brandAccent || "Morgan";
+  const fullName = hero?.name || `${footer?.brandName || "Alex"} ${footer?.brandAccent || "Morgan"}`;
+  const nameParts = fullName.split(" ");
+  const brandName = nameParts[0] || "Alex";
+  const brandAccent = nameParts.slice(1).join(" ") || "Morgan";
 
   // Fetch current logo — check localStorage first, then API
   useEffect(() => {
