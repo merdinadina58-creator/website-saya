@@ -157,18 +157,52 @@ export default function Navbar() {
     return null;
   }, []);
 
-  // Update favicon dynamically when logo changes
+  // Update favicon dynamically when logo changes — use base64 data URL directly
   const updateFavicon = useCallback((src: string) => {
     try {
-      // Update the dynamic favicon link tag
+      // Update the dynamic favicon link tag with the logo data URL directly
       const dynamicFavicon = document.getElementById("dynamic-favicon") as HTMLLinkElement;
       if (dynamicFavicon) {
-        dynamicFavicon.href = "/api/favicon?t=" + Date.now();
+        dynamicFavicon.href = src;
+      }
+      // Also update the static favicon link
+      const staticFavicon = document.querySelector('link[rel="icon"][href="/favicon.ico"]') as HTMLLinkElement;
+      if (staticFavicon) {
+        staticFavicon.href = src;
       }
       // Update apple touch icon
       const dynamicAppleIcon = document.getElementById("dynamic-apple-icon") as HTMLLinkElement;
       if (dynamicAppleIcon) {
-        dynamicAppleIcon.href = "/api/logo-icon?size=512&t=" + Date.now();
+        dynamicAppleIcon.href = src;
+      }
+      const staticAppleIcon = document.querySelector('link[rel="apple-touch-icon"]') as HTMLLinkElement;
+      if (staticAppleIcon) {
+        staticAppleIcon.href = src;
+      }
+      // Update PWA manifest dynamically
+      try {
+        const manifest = {
+          name: document.title || "Website Saya",
+          short_name: "WebsiteSaya",
+          description: "Portofolio pribadi — Developer Kreatif & Desainer yang menciptakan pengalaman digital elegan.",
+          start_url: "/",
+          display: "standalone",
+          background_color: "#0a0a0a",
+          theme_color: "#d97706",
+          orientation: "portrait-primary",
+          icons: [
+            { src, sizes: "192x192", type: "image/png", purpose: "any maskable" },
+            { src, sizes: "512x512", type: "image/png", purpose: "any maskable" },
+          ],
+        };
+        const blob = new Blob([JSON.stringify(manifest)], { type: "application/json" });
+        const manifestUrl = URL.createObjectURL(blob);
+        const existingManifest = document.querySelector('link[rel="manifest"]') as HTMLLinkElement;
+        if (existingManifest) {
+          existingManifest.href = manifestUrl;
+        }
+      } catch {
+        // Manifest update is non-critical
       }
     } catch {
       // Favicon update is non-critical, ignore errors
@@ -214,6 +248,8 @@ export default function Navbar() {
     const localLogo = loadLogoFromLocalStorage();
     if (localLogo?.src) {
       setLogoSrc(localLogo.src);
+      // Also update favicon immediately from localStorage
+      updateFavicon(localLogo.src);
     }
 
     // Then try API (DB might have newer data on local server)
@@ -227,6 +263,7 @@ export default function Navbar() {
           // API has real logo data — use it and update localStorage
           setLogoSrc(data.src);
           saveLogoToLocalStorage(data);
+          updateFavicon(data.src);
         } else if (!localLogo?.src) {
           // No localStorage data and API returned default — show default
           setLogoSrc("/logo-512.png");
@@ -237,7 +274,7 @@ export default function Navbar() {
       .catch(() => {
         // API failed — localStorage data (if any) is already set above
       });
-  }, [loadLogoFromLocalStorage, saveLogoToLocalStorage]);
+  }, [loadLogoFromLocalStorage, saveLogoToLocalStorage, updateFavicon]);
 
   // Logo upload handler
   const handleLogoUpload = useCallback(
