@@ -1,28 +1,21 @@
 "use client";
 
-import { useState, useEffect, useSyncExternalStore } from "react";
+import { useState, useEffect, useSyncExternalStore, useCallback } from "react";
 import { motion } from "framer-motion";
 import { useTheme } from "next-themes";
 import {
   Menu,
   Sun,
   Moon,
-  LayoutDashboard,
-  BarChart3,
-  Mail,
-  Cloud,
-  MessageCircle,
-  Kanban,
   ChevronDown,
+  Plus,
   ExternalLink,
-  Grid3X3,
-  BookOpen,
-  PenTool,
-  Github,
-  Hash,
-  type LucideIcon,
+  Trash2,
+  GripVertical,
+  Globe,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Sheet,
   SheetTrigger,
@@ -39,7 +32,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
-import { apps, type AppItem } from "@/data/apps";
+import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
+import { defaultApps, type AppItem } from "@/data/apps";
 
 const navLinks = [
   { label: "Tentang", href: "#about" },
@@ -48,19 +50,7 @@ const navLinks = [
   { label: "Kontak", href: "#contact" },
 ];
 
-// Peta ikon Lucide berdasarkan nama string di konfigurasi
-const iconMap: Record<string, LucideIcon> = {
-  LayoutDashboard,
-  BarChart3,
-  Mail,
-  Cloud,
-  MessageCircle,
-  Kanban,
-  BookOpen,
-  PenTool,
-  Github,
-  Hash,
-};
+const STORAGE_KEY = "my-apps-list";
 
 const emptySubscribe = () => () => {};
 function useMounted() {
@@ -71,16 +61,74 @@ function useMounted() {
   );
 }
 
-function AppIcon({ iconName, className }: { iconName: string; className?: string }) {
-  const IconComponent = iconMap[iconName];
-  if (!IconComponent) return <Grid3X3 className={className} />;
-  return <IconComponent className={className} />;
+function loadApps(): AppItem[] {
+  if (typeof window === "undefined") return defaultApps;
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch {
+    // ignore
+  }
+  return defaultApps;
+}
+
+function saveApps(apps: AppItem[]) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(apps));
+  } catch {
+    // ignore
+  }
 }
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
+  const [apps, setApps] = useState<AppItem[]>([]);
+  const [appsLoaded, setAppsLoaded] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [newUrl, setNewUrl] = useState("");
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [mobileAddOpen, setMobileAddOpen] = useState(false);
   const mounted = useMounted();
   const { theme, setTheme } = useTheme();
+
+  // Load apps from localStorage after hydration
+  const isClient = useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false
+  );
+  if (isClient && !appsLoaded) {
+    setApps(loadApps());
+    setAppsLoaded(true);
+  }
+
+  const handleAddApp = useCallback(() => {
+    const name = newName.trim();
+    let url = newUrl.trim();
+    if (!name || !url) return;
+    if (!url.startsWith("http://") && !url.startsWith("https://")) {
+      url = "https://" + url;
+    }
+    const updated = [...apps, { name, url }];
+    setApps(updated);
+    saveApps(updated);
+    setNewName("");
+    setNewUrl("");
+    setAddDialogOpen(false);
+    setMobileAddOpen(false);
+  }, [newName, newUrl, apps]);
+
+  const handleRemoveApp = useCallback(
+    (index: number) => {
+      const updated = apps.filter((_, i) => i !== index);
+      setApps(updated);
+      saveApps(updated);
+    },
+    [apps]
+  );
 
   useEffect(() => {
     const handleScroll = () => {
@@ -140,49 +188,117 @@ export default function Navbar() {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="text-sm font-medium text-muted-foreground hover:text-accent transition-colors relative group flex items-center gap-1">
-                <Grid3X3 className="size-3.5" />
+                <Globe className="size-3.5" />
                 Aplikasi
                 <ChevronDown className="size-3 transition-transform duration-200 group-data-[state=open]:rotate-180" />
                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-accent transition-all duration-300 group-hover:w-full" />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent
-              align="end"
-              className="w-72 p-2"
-            >
+            <DropdownMenuContent align="end" className="w-80 p-2">
               <DropdownMenuLabel className="px-2 py-1.5 text-xs font-semibold uppercase tracking-widest text-accent">
                 Aplikasi Saya
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <div className="grid grid-cols-2 gap-1 py-1">
-                {apps.map((app: AppItem) => (
+
+              {/* App List */}
+              <div className="max-h-72 overflow-y-auto py-1">
+                {apps.length === 0 && (
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    Belum ada aplikasi
+                  </p>
+                )}
+                {apps.map((app, i) => (
                   <DropdownMenuItem
-                    key={app.name}
-                    asChild
-                    className="flex flex-col items-start gap-1 p-3 rounded-lg cursor-pointer focus:bg-accent/10"
+                    key={i}
+                    className="flex items-center gap-3 p-2 rounded-lg cursor-pointer group/item focus:bg-accent/10"
+                    onSelect={(e) => e.preventDefault()}
                   >
                     <a
                       href={app.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex flex-col items-start gap-1.5 w-full"
+                      className="flex items-center gap-3 flex-1 min-w-0"
                     >
-                      <div className="flex items-center gap-2 w-full">
-                        <div className={`shrink-0 ${app.color}`}>
-                          <AppIcon iconName={app.icon} className="size-4" />
-                        </div>
-                        <span className="text-sm font-medium text-foreground truncate">
-                          {app.name}
-                        </span>
-                        <ExternalLink className="size-2.5 text-muted-foreground/50 ml-auto shrink-0" />
+                      <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-accent/10 text-accent">
+                        <Globe className="size-4" />
                       </div>
-                      <span className="text-[11px] leading-tight text-muted-foreground line-clamp-1 pl-6">
-                        {app.description}
-                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-foreground truncate">
+                          {app.name}
+                        </p>
+                        <p className="text-[11px] text-muted-foreground truncate">
+                          {app.url}
+                        </p>
+                      </div>
+                      <ExternalLink className="size-3.5 text-muted-foreground/40 shrink-0" />
                     </a>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRemoveApp(i);
+                      }}
+                      className="shrink-0 opacity-0 group-hover/item:opacity-100 p-1 rounded hover:bg-destructive/10 hover:text-destructive transition-all"
+                      aria-label={`Hapus ${app.name}`}
+                    >
+                      <Trash2 className="size-3.5" />
+                    </button>
                   </DropdownMenuItem>
                 ))}
               </div>
+
+              <DropdownMenuSeparator />
+
+              {/* Add App Dialog */}
+              <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
+                <DialogTrigger asChild>
+                  <button className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-sm font-medium text-accent hover:bg-accent/10 transition-colors">
+                    <Plus className="size-4" />
+                    Tambah Aplikasi
+                  </button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Tambah Aplikasi Baru</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <label htmlFor="desktop-app-name" className="text-sm font-medium">
+                        Nama Aplikasi
+                      </label>
+                      <Input
+                        id="desktop-app-name"
+                        placeholder="Contoh: Dashboard"
+                        value={newName}
+                        onChange={(e) => setNewName(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label htmlFor="desktop-app-url" className="text-sm font-medium">
+                        URL Aplikasi
+                      </label>
+                      <Input
+                        id="desktop-app-url"
+                        placeholder="Contoh: https://dashboard.saya.com"
+                        value={newUrl}
+                        onChange={(e) => setNewUrl(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <DialogClose asChild>
+                      <Button variant="outline">Batal</Button>
+                    </DialogClose>
+                    <Button
+                      onClick={handleAddApp}
+                      disabled={!newName.trim() || !newUrl.trim()}
+                      className="bg-accent text-accent-foreground hover:bg-accent/90"
+                    >
+                      <Plus className="size-4 mr-1" />
+                      Tambah
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -235,31 +351,100 @@ export default function Navbar() {
 
                   {/* Mobile Apps Section */}
                   <div className="pt-2">
-                    <p className="text-xs font-semibold uppercase tracking-widest text-accent mb-3 px-1">
-                      Aplikasi Saya
-                    </p>
-                    <div className="grid grid-cols-2 gap-2">
-                      {apps.map((app: AppItem) => (
-                        <SheetClose asChild key={app.name}>
+                    <div className="flex items-center justify-between mb-3 px-1">
+                      <p className="text-xs font-semibold uppercase tracking-widest text-accent">
+                        Aplikasi Saya
+                      </p>
+                      <Dialog open={mobileAddOpen} onOpenChange={setMobileAddOpen}>
+                        <DialogTrigger asChild>
+                          <button className="flex items-center gap-1 text-xs font-medium text-accent hover:text-accent/80 transition-colors">
+                            <Plus className="size-3" />
+                            Tambah
+                          </button>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-md">
+                          <DialogHeader>
+                            <DialogTitle>Tambah Aplikasi Baru</DialogTitle>
+                          </DialogHeader>
+                          <div className="space-y-4 py-4">
+                            <div className="space-y-2">
+                              <label htmlFor="mobile-app-name" className="text-sm font-medium">
+                                Nama Aplikasi
+                              </label>
+                              <Input
+                                id="mobile-app-name"
+                                placeholder="Contoh: Dashboard"
+                                value={newName}
+                                onChange={(e) => setNewName(e.target.value)}
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <label htmlFor="mobile-app-url" className="text-sm font-medium">
+                                URL Aplikasi
+                              </label>
+                              <Input
+                                id="mobile-app-url"
+                                placeholder="Contoh: https://dashboard.saya.com"
+                                value={newUrl}
+                                onChange={(e) => setNewUrl(e.target.value)}
+                              />
+                            </div>
+                          </div>
+                          <DialogFooter>
+                            <DialogClose asChild>
+                              <Button variant="outline">Batal</Button>
+                            </DialogClose>
+                            <Button
+                              onClick={handleAddApp}
+                              disabled={!newName.trim() || !newUrl.trim()}
+                              className="bg-accent text-accent-foreground hover:bg-accent/90"
+                            >
+                              <Plus className="size-4 mr-1" />
+                              Tambah
+                            </Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+                    </div>
+
+                    <div className="space-y-2">
+                      {apps.length === 0 && (
+                        <p className="text-sm text-muted-foreground text-center py-4">
+                          Belum ada aplikasi
+                        </p>
+                      )}
+                      {apps.map((app, i) => (
+                        <div
+                          key={i}
+                          className="flex items-center gap-3 p-3 rounded-lg border border-border/50 hover:border-accent/30 hover:bg-accent/5 transition-all duration-200 group/item"
+                        >
                           <a
                             href={app.url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="flex flex-col items-start gap-1.5 p-3 rounded-lg border border-border/50 hover:border-accent/30 hover:bg-accent/5 transition-all duration-200"
+                            className="flex items-center gap-3 flex-1 min-w-0"
                           >
-                            <div className="flex items-center gap-2">
-                              <div className={app.color}>
-                                <AppIcon iconName={app.icon} className="size-4" />
-                              </div>
-                              <span className="text-sm font-medium text-foreground truncate">
-                                {app.name}
-                              </span>
+                            <div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-accent/10 text-accent">
+                              <Globe className="size-4" />
                             </div>
-                            <span className="text-[11px] text-muted-foreground line-clamp-1 pl-6">
-                              {app.description}
-                            </span>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm font-medium text-foreground truncate">
+                                {app.name}
+                              </p>
+                              <p className="text-[11px] text-muted-foreground truncate">
+                                {app.url}
+                              </p>
+                            </div>
+                            <ExternalLink className="size-3.5 text-muted-foreground/40 shrink-0" />
                           </a>
-                        </SheetClose>
+                          <button
+                            onClick={() => handleRemoveApp(i)}
+                            className="shrink-0 opacity-0 group-hover/item:opacity-100 p-1.5 rounded-md hover:bg-destructive/10 hover:text-destructive transition-all"
+                            aria-label={`Hapus ${app.name}`}
+                          >
+                            <Trash2 className="size-3.5" />
+                          </button>
+                        </div>
                       ))}
                     </div>
                   </div>
