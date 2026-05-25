@@ -1,8 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyCredentials } from "@/lib/auth";
+import { isDbAvailable, markDbUnavailable } from "@/lib/db";
 
 export async function POST(request: NextRequest) {
   try {
+    if (!(await isDbAvailable())) {
+      return NextResponse.json(
+        { error: "Database tidak tersedia. Login hanya tersedia di server lokal." },
+        { status: 503 }
+      );
+    }
+
     const { username, password } = await request.json();
 
     if (!username || !password) {
@@ -23,6 +31,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Login error:", error);
-    return NextResponse.json({ error: "Gagal login" }, { status: 500 });
+    markDbUnavailable();
+    return NextResponse.json(
+      { error: "Gagal login" },
+      { status: 500 }
+    );
   }
 }

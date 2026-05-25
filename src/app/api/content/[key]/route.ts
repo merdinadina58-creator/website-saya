@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { db, isDbAvailable, markDbUnavailable } from "@/lib/db";
 import { verifyAdminFromHeader } from "@/lib/auth";
 
 export async function GET(
@@ -7,6 +7,13 @@ export async function GET(
   { params }: { params: Promise<{ key: string }> }
 ) {
   try {
+    if (!(await isDbAvailable())) {
+      return NextResponse.json(
+        { error: "Konten tidak ditemukan" },
+        { status: 404 }
+      );
+    }
+
     const { key } = await params;
     const content = await db.siteContent.findUnique({ where: { key } });
 
@@ -25,9 +32,10 @@ export async function GET(
     });
   } catch (error) {
     console.error("Failed to fetch content:", error);
+    markDbUnavailable();
     return NextResponse.json(
-      { error: "Gagal mengambil konten" },
-      { status: 500 }
+      { error: "Konten tidak ditemukan" },
+      { status: 404 }
     );
   }
 }
@@ -37,6 +45,13 @@ export async function PUT(
   { params }: { params: Promise<{ key: string }> }
 ) {
   try {
+    if (!(await isDbAvailable())) {
+      return NextResponse.json(
+        { error: "Database tidak tersedia di lingkungan ini. Fitur edit hanya tersedia di server lokal." },
+        { status: 503 }
+      );
+    }
+
     // Auth check
     if (!(await verifyAdminFromHeader(request))) {
       return NextResponse.json(
@@ -74,6 +89,7 @@ export async function PUT(
     });
   } catch (error) {
     console.error("Failed to update content:", error);
+    markDbUnavailable();
     return NextResponse.json(
       { error: "Gagal memperbarui konten" },
       { status: 500 }
@@ -86,6 +102,13 @@ export async function DELETE(
   { params }: { params: Promise<{ key: string }> }
 ) {
   try {
+    if (!(await isDbAvailable())) {
+      return NextResponse.json(
+        { error: "Database tidak tersedia di lingkungan ini." },
+        { status: 503 }
+      );
+    }
+
     // Auth check
     if (!(await verifyAdminFromHeader(request))) {
       return NextResponse.json(
@@ -109,6 +132,7 @@ export async function DELETE(
     return NextResponse.json({ message: "Konten berhasil dihapus" });
   } catch (error) {
     console.error("Failed to delete content:", error);
+    markDbUnavailable();
     return NextResponse.json(
       { error: "Gagal menghapus konten" },
       { status: 500 }

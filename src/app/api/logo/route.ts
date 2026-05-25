@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { db, isDbAvailable, markDbUnavailable } from "@/lib/db";
 import { verifyAdminFromHeader } from "@/lib/auth";
 
 export async function GET() {
   try {
+    if (!(await isDbAvailable())) {
+      return NextResponse.json({ src: "/logo-512.png" });
+    }
     const record = await db.siteContent.findUnique({
       where: { key: "_logo" },
     });
@@ -11,21 +14,28 @@ export async function GET() {
       return NextResponse.json(JSON.parse(record.value));
     }
   } catch {
-    // fallback
+    markDbUnavailable();
   }
   return NextResponse.json({ src: "/logo-512.png" });
 }
 
 export async function POST(req: NextRequest) {
-  // Auth check using the same method as content API
-  if (!(await verifyAdminFromHeader(req))) {
-    return NextResponse.json(
-      { error: "Tidak memiliki akses. Silakan login terlebih dahulu." },
-      { status: 401 }
-    );
-  }
-
   try {
+    if (!(await isDbAvailable())) {
+      return NextResponse.json(
+        { error: "Database tidak tersedia. Upload logo hanya tersedia di server lokal." },
+        { status: 503 }
+      );
+    }
+
+    // Auth check using the same method as content API
+    if (!(await verifyAdminFromHeader(req))) {
+      return NextResponse.json(
+        { error: "Tidak memiliki akses. Silakan login terlebih dahulu." },
+        { status: 401 }
+      );
+    }
+
     const formData = await req.formData();
     const file = formData.get("logo") as File | null;
 
@@ -54,7 +64,6 @@ export async function POST(req: NextRequest) {
     const buffer = Buffer.from(await file.arrayBuffer());
 
     // Convert to base64 and store in database
-    // This works on Vercel too since we're using the database
     const base64 = buffer.toString("base64");
     const dataUrl = `data:${file.type};base64,${base64}`;
 
@@ -109,6 +118,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true, logo: logoData });
   } catch (err) {
     console.error("Logo upload error:", err);
+    markDbUnavailable();
     return NextResponse.json({ error: "Gagal mengupload logo" }, { status: 500 });
   }
 }

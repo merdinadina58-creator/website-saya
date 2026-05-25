@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { db, isDbAvailable, markDbUnavailable } from "@/lib/db";
 import { verifyAdminFromHeader } from "@/lib/auth";
 
 export async function GET() {
   try {
+    if (!(await isDbAvailable())) {
+      return NextResponse.json({});
+    }
     const contents = await db.siteContent.findMany();
     const result: Record<string, unknown> = {};
     for (const item of contents) {
@@ -18,15 +21,21 @@ export async function GET() {
     return NextResponse.json(result);
   } catch (error) {
     console.error("Failed to fetch content:", error);
-    return NextResponse.json(
-      { error: "Gagal mengambil konten" },
-      { status: 500 }
-    );
+    markDbUnavailable();
+    // Return empty object so the frontend falls back to defaults
+    return NextResponse.json({});
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
+    if (!(await isDbAvailable())) {
+      return NextResponse.json(
+        { error: "Database tidak tersedia di lingkungan ini. Fitur edit hanya tersedia di server lokal." },
+        { status: 503 }
+      );
+    }
+
     // Auth check
     if (!(await verifyAdminFromHeader(request))) {
       return NextResponse.json(
@@ -66,6 +75,7 @@ export async function POST(request: NextRequest) {
     );
   } catch (error) {
     console.error("Failed to create content:", error);
+    markDbUnavailable();
     return NextResponse.json(
       { error: "Gagal membuat konten" },
       { status: 500 }

@@ -4,9 +4,17 @@ import {
   setAdminUsername,
   setAdminPassword,
 } from "@/lib/auth";
+import { isDbAvailable, markDbUnavailable } from "@/lib/db";
 
 export async function PUT(request: NextRequest) {
   try {
+    if (!(await isDbAvailable())) {
+      return NextResponse.json(
+        { error: "Database tidak tersedia. Pengaturan akun hanya tersedia di server lokal." },
+        { status: 503 }
+      );
+    }
+
     const { currentUsername, currentPassword, newUsername, newPassword } =
       await request.json();
 
@@ -48,6 +56,7 @@ export async function PUT(request: NextRequest) {
     });
   } catch (error) {
     console.error("Account update error:", error);
+    markDbUnavailable();
     return NextResponse.json(
       { error: "Gagal memperbarui akun" },
       { status: 500 }

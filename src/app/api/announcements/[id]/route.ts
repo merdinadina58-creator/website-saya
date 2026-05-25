@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { db, isDbAvailable, markDbUnavailable } from "@/lib/db";
 import { verifyAdminFromHeader } from "@/lib/auth";
 
 // DELETE /api/announcements/[id] — Admin only: delete announcement
@@ -8,6 +8,13 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    if (!(await isDbAvailable())) {
+      return NextResponse.json(
+        { error: "Database tidak tersedia di lingkungan ini." },
+        { status: 503 }
+      );
+    }
+
     if (!(await verifyAdminFromHeader(request))) {
       return NextResponse.json(
         { error: "Tidak memiliki akses. Silakan login terlebih dahulu." },
@@ -30,6 +37,7 @@ export async function DELETE(
     return NextResponse.json({ message: "Pengumuman berhasil dihapus" });
   } catch (error) {
     console.error("Failed to delete announcement:", error);
+    markDbUnavailable();
     return NextResponse.json(
       { error: "Gagal menghapus pengumuman" },
       { status: 500 }
@@ -43,6 +51,13 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    if (!(await isDbAvailable())) {
+      return NextResponse.json(
+        { error: "Database tidak tersedia di lingkungan ini. Fitur edit hanya tersedia di server lokal." },
+        { status: 503 }
+      );
+    }
+
     if (!(await verifyAdminFromHeader(request))) {
       return NextResponse.json(
         { error: "Tidak memiliki akses. Silakan login terlebih dahulu." },
@@ -75,6 +90,7 @@ export async function PUT(
     return NextResponse.json(updated);
   } catch (error) {
     console.error("Failed to update announcement:", error);
+    markDbUnavailable();
     return NextResponse.json(
       { error: "Gagal memperbarui pengumuman" },
       { status: 500 }
