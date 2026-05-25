@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyCredentials, DEFAULT_USERNAME, DEFAULT_PASSWORD } from "@/lib/auth";
-import { isDbAvailable, markDbUnavailable } from "@/lib/db";
+import { DEFAULT_USERNAME, DEFAULT_PASSWORD } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
   try {
-    const { username, password } = await request.json();
+    const body = await request.json();
+    const username = (body.username || "").trim();
+    const password = body.password || "";
 
     if (!username || !password) {
       return NextResponse.json(
@@ -13,35 +14,32 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Try database first
-    const dbAvailable = await isDbAvailable();
+    // Always check default credentials first — this guarantees login works on Vercel/serverless
+    // where SQLite database may not be persistent
+    if (username === DEFAULT_USERNAME && password === DEFAULT_PASSWORD) {
+      return NextResponse.json({ success: true });
+    }
 
-    if (dbAvailable) {
-      try {
+    // Then try database credentials (in case admin changed their password)
+    try {
+      const { verifyCredentials } = await import("@/lib/auth");
+      const { isDbAvailable } = await import("@/lib/db");
+
+      if (await isDbAvailable()) {
         const isValid = await verifyCredentials(username, password);
         if (isValid) {
           return NextResponse.json({ success: true });
         }
-        // If DB check failed, try default credentials as fallback
-        // (DB might be empty/reset on Vercel)
-      } catch {
-        // DB query failed, fall through to default check
       }
-    }
-
-    // Fallback: check against default credentials
-    // This ensures login works even when DB is unavailable (Vercel serverless)
-    if (username === DEFAULT_USERNAME && password === DEFAULT_PASSWORD) {
-      return NextResponse.json({ success: true });
+    } catch {
+      // DB not available or query failed — already checked defaults above
     }
 
     return NextResponse.json(
       { error: "Username atau password salah" },
       { status: 401 }
     );
-  } catch (error) {
-    console.error("Login error:", error);
-    markDbUnavailable();
+  } catch {
     return NextResponse.json(
       { error: "Gagal login" },
       { status: 500 }

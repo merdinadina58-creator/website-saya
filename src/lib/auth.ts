@@ -54,17 +54,17 @@ export async function verifyAdminFromHeader(
   const password = request.headers.get("x-admin-password");
   if (!username || !password) return false;
 
-  // Try database credentials first
+  // Always check default credentials first — ensures auth works on Vercel/serverless
+  if (username === DEFAULT_USERNAME && password === DEFAULT_PASSWORD) {
+    return true;
+  }
+
+  // Then try database credentials (in case admin changed their password)
   try {
     const isValid = await verifyCredentials(username, password);
     if (isValid) return true;
   } catch {
-    // DB not available, fall through to default check
-  }
-
-  // Fallback: check against default credentials (for Vercel/serverless)
-  if (username === DEFAULT_USERNAME && password === DEFAULT_PASSWORD) {
-    return true;
+    // DB not available
   }
 
   return false;
