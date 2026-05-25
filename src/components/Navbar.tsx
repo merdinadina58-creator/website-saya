@@ -627,12 +627,18 @@ export default function Navbar() {
                       rel="noopener noreferrer"
                       className="flex items-center gap-3 flex-1 min-w-0"
                     >
-                      <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-accent/10 text-accent overflow-hidden">
-                        {logoSrc && logoSrc !== "/logo-512.png" ? (
-                          <img src={logoSrc} alt="" className="size-5 object-contain" />
-                        ) : (
-                          <Globe className="size-4" />
-                        )}
+                      <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-accent/10 overflow-hidden">
+                        <img
+                          src={`https://www.google.com/s2/favicons?domain=${encodeURIComponent(new URL(app.url).hostname)}&sz=64`}
+                          alt=""
+                          className="size-5 object-contain"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                            target.nextElementSibling?.classList.remove('hidden');
+                          }}
+                        />
+                        <Globe className="size-4 text-accent hidden" />
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium text-foreground truncate">
@@ -971,12 +977,18 @@ export default function Navbar() {
                             rel="noopener noreferrer"
                             className="flex items-center gap-3 flex-1 min-w-0"
                           >
-                            <div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-accent/10 text-accent overflow-hidden">
-                              {logoSrc && logoSrc !== "/logo-512.png" ? (
-                                <img src={logoSrc} alt="" className="size-5 object-contain" />
-                              ) : (
-                                <Globe className="size-4" />
-                              )}
+                            <div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-accent/10 overflow-hidden">
+                              <img
+                                src={`https://www.google.com/s2/favicons?domain=${encodeURIComponent(new URL(app.url).hostname)}&sz=64`}
+                                alt=""
+                                className="size-5 object-contain"
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  target.style.display = 'none';
+                                  target.nextElementSibling?.classList.remove('hidden');
+                                }}
+                              />
+                              <Globe className="size-4 text-accent hidden" />
                             </div>
                             <div className="min-w-0 flex-1">
                               <p className="text-sm font-medium text-foreground truncate">
