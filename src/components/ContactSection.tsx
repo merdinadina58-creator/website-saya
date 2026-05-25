@@ -18,8 +18,8 @@ const contactInfo = [
   },
   {
     icon: <MapPin className="size-5" />,
-    label: "Location",
-    value: "San Francisco, CA",
+    label: "Lokasi",
+    value: "Jakarta, Indonesia",
     href: undefined,
   },
 ];
@@ -57,14 +57,14 @@ export default function ContactSection() {
           className="mb-16 text-center"
         >
           <p className="text-sm font-medium uppercase tracking-widest text-accent">
-            Contact
+            Kontak
           </p>
           <h2 className="mt-3 text-3xl sm:text-4xl font-bold text-foreground">
-            Let&apos;s Work Together
+            Mari Berkolaborasi
           </h2>
           <p className="mx-auto mt-4 max-w-2xl text-muted-foreground">
-            Have a project in mind or just want to say hello? I&apos;d love to
-            hear from you. Let&apos;s create something extraordinary.
+            Punya proyek di pikiran atau sekadar ingin menyapa? Saya akan senang
+            mendengar dari Anda. Mari ciptakan sesuatu yang luar biasa.
           </p>
         </motion.div>
 
@@ -76,12 +76,12 @@ export default function ContactSection() {
             transition={{ duration: 0.6, delay: 0.2 }}
           >
             <h3 className="text-xl font-semibold text-foreground mb-6">
-              Get in Touch
+              Hubungi Saya
             </h3>
             <p className="text-muted-foreground leading-relaxed mb-8">
-              Whether you have a question, a collaboration idea, or just want
-              to connect — my inbox is always open. I try to respond within 24
-              hours.
+              Baik Anda punya pertanyaan, ide kolaborasi, atau sekadar ingin
+              terhubung — kotak masuk saya selalu terbuka. Saya berusaha merespons
+              dalam 24 jam.
             </p>
 
             <div className="space-y-4 mb-8">
@@ -115,7 +115,7 @@ export default function ContactSection() {
 
             <div>
               <p className="text-sm font-medium text-foreground mb-4">
-                Follow Me
+                Ikuti Saya
               </p>
               <div className="flex gap-3">
                 {socialLinks.map((social) => (
@@ -150,11 +150,11 @@ export default function ContactSection() {
                         htmlFor="name"
                         className="text-sm font-medium text-foreground"
                       >
-                        Name
+                        Nama
                       </label>
                       <Input
                         id="name"
-                        placeholder="Your name"
+                        placeholder="Nama Anda"
                         className="border-border/60 focus:border-accent/60 min-h-[44px]"
                       />
                     </div>
@@ -168,7 +168,7 @@ export default function ContactSection() {
                       <Input
                         id="email"
                         type="email"
-                        placeholder="you@example.com"
+                        placeholder="anda@contoh.com"
                         className="border-border/60 focus:border-accent/60 min-h-[44px]"
                       />
                     </div>
@@ -178,11 +178,11 @@ export default function ContactSection() {
                       htmlFor="subject"
                       className="text-sm font-medium text-foreground"
                     >
-                      Subject
+                      Subjek
                     </label>
                     <Input
                       id="subject"
-                      placeholder="Project inquiry"
+                      placeholder="Pertanyaan proyek"
                       className="border-border/60 focus:border-accent/60 min-h-[44px]"
                     />
                   </div>
@@ -191,11 +191,11 @@ export default function ContactSection() {
                       htmlFor="message"
                       className="text-sm font-medium text-foreground"
                     >
-                      Message
+                      Pesan
                     </label>
                     <Textarea
                       id="message"
-                      placeholder="Tell me about your project..."
+                      placeholder="Ceritakan tentang proyek Anda..."
                       rows={5}
                       className="border-border/60 focus:border-accent/60 resize-none"
                     />
@@ -206,7 +206,7 @@ export default function ContactSection() {
                     className="w-full bg-accent text-accent-foreground hover:bg-accent/90 shadow-lg min-h-[44px] cursor-pointer"
                   >
                     <Send className="size-4 mr-2" />
-                    Send Message
+                    Kirim Pesan
                   </Button>
                 </form>
               </CardContent>

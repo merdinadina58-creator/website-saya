@@ -6,10 +6,10 @@ import Image from "next/image";
 import { Card, CardContent } from "@/components/ui/card";
 
 const stats = [
-  { value: "5+", label: "Years Experience" },
-  { value: "50+", label: "Projects Completed" },
-  { value: "30+", label: "Happy Clients" },
-  { value: "12", label: "Awards Won" },
+  { value: "5+", label: "Tahun Pengalaman" },
+  { value: "50+", label: "Proyek Selesai" },
+  { value: "30+", label: "Klien Puas" },
+  { value: "12", label: "Penghargaan" },
 ];
 
 export default function AboutSection() {
@@ -27,10 +27,10 @@ export default function AboutSection() {
           className="mb-16 text-center"
         >
           <p className="text-sm font-medium uppercase tracking-widest text-accent">
-            About Me
+            Tentang Saya
           </p>
           <h2 className="mt-3 text-3xl sm:text-4xl font-bold text-foreground">
-            Passion Meets Purpose
+            Passion Bertemu Tujuan
           </h2>
         </motion.div>
 
@@ -46,7 +46,7 @@ export default function AboutSection() {
             <div className="relative aspect-square overflow-hidden rounded-2xl">
               <Image
                 src="/avatar.png"
-                alt="Alex Morgan — Creative Developer & Designer"
+                alt="Alex Morgan — Developer Kreatif & Desainer"
                 fill
                 className="object-cover"
                 priority
@@ -63,25 +63,26 @@ export default function AboutSection() {
             transition={{ duration: 0.7, delay: 0.3 }}
           >
             <h3 className="text-xl sm:text-2xl font-semibold text-foreground mb-6">
-              A developer with a designer&apos;s eye and a passion for clean code.
+              Seorang developer dengan mata desainer dan passion untuk kode bersih.
             </h3>
             <div className="space-y-4 text-muted-foreground leading-relaxed">
               <p>
-                I&apos;m Alex Morgan, a creative developer and designer based in San
-                Francisco. With over five years of experience, I specialize in
-                building beautiful, performant web applications that bridge the gap
-                between aesthetics and functionality.
+                Saya Alex Morgan, seorang developer kreatif dan desainer yang berbasis di
+                Jakarta. Dengan pengalaman lebih dari lima tahun, saya spesialisasi
+                dalam membangun aplikasi web yang indah dan berkinerja tinggi yang
+                menjembatani kesenjangan antara estetika dan fungsionalitas.
               </p>
               <p>
-                My journey began in graphic design, which gives me a unique
-                perspective on user experience. I believe that great software
-                shouldn&apos;t just work — it should delight. Every project I take on
-                is an opportunity to craft something meaningful and memorable.
+                Perjalanan saya dimulai dari desain grafis, yang memberikan saya
+                perspektif unik tentang pengalaman pengguna. Saya percaya bahwa
+                perangkat lunak yang hebat tidak hanya harus berfungsi — tetapi juga
+                harus memberikan kegembiraan. Setiap proyek yang saya ambil adalah
+                kesempatan untuk menciptakan sesuatu yang bermakna dan berkesan.
               </p>
               <p>
-                When I&apos;m not coding, you&apos;ll find me exploring typography,
-                experimenting with generative art, or hiking the trails of Northern
-                California.
+                Saat tidak coding, Anda akan menemukan saya menjelajahi tipografi,
+                bereksperimen dengan seni generatif, atau mendaki jalur pegunungan
+                di Indonesia.
               </p>
             </div>
           </motion.div>

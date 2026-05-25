@@ -43,15 +43,15 @@ const skillCategories: SkillCategory[] = [
     tags: ["Node.js", "Python", "PostgreSQL", "GraphQL", "Docker", "AWS"],
   },
   {
-    title: "Design",
+    title: "Desain",
     icon: <Palette className="size-5" />,
     skills: [
-      { name: "UI/UX Design", level: 90 },
+      { name: "Desain UI/UX", level: 90 },
       { name: "Figma", level: 92 },
-      { name: "Design Systems", level: 87 },
-      { name: "Prototyping", level: 84 },
+      { name: "Sistem Desain", level: 87 },
+      { name: "Prototipe", level: 84 },
     ],
-    tags: ["Figma", "UI/UX", "Design Systems", "Prototyping", "Typography", "Illustration"],
+    tags: ["Figma", "UI/UX", "Sistem Desain", "Prototipe", "Tipografi", "Ilustrasi"],
   },
 ];
 
@@ -70,15 +70,15 @@ export default function SkillsSection() {
           className="mb-16 text-center"
         >
           <p className="text-sm font-medium uppercase tracking-widest text-accent">
-            Skills & Expertise
+            Keahlian & Spesialisasi
           </p>
           <h2 className="mt-3 text-3xl sm:text-4xl font-bold text-foreground">
-            What I Bring to the Table
+            Yang Saya Bisa Berikan
           </h2>
           <p className="mx-auto mt-4 max-w-2xl text-muted-foreground">
-            A versatile skill set spanning frontend development, backend
-            engineering, and UI/UX design — allowing me to deliver complete
-            digital solutions.
+            Kemampuan serba bisa yang mencakup pengembangan frontend, rekayasa
+            backend, dan desain UI/UX — memungkinkan saya memberikan solusi
+            digital yang lengkap.
           </p>
         </motion.div>
 

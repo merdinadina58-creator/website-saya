@@ -15,10 +15,10 @@ import {
 } from "@/components/ui/sheet";
 
 const navLinks = [
-  { label: "About", href: "#about" },
-  { label: "Skills", href: "#skills" },
-  { label: "Portfolio", href: "#portfolio" },
-  { label: "Contact", href: "#contact" },
+  { label: "Tentang", href: "#about" },
+  { label: "Keahlian", href: "#skills" },
+  { label: "Portofolio", href: "#portfolio" },
+  { label: "Kontak", href: "#contact" },
 ];
 
 const emptySubscribe = () => () => {};
@@ -98,7 +98,7 @@ export default function Navbar() {
               variant="ghost"
               size="icon"
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              aria-label="Toggle theme"
+              aria-label="Ganti tema"
               className="hover:text-accent"
             >
               {theme === "dark" ? (
@@ -113,7 +113,7 @@ export default function Navbar() {
           <div className="md:hidden">
             <Sheet>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" aria-label="Open menu">
+                <Button variant="ghost" size="icon" aria-label="Buka menu">
                   <Menu className="size-5" />
                 </Button>
               </SheetTrigger>

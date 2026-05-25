@@ -15,15 +15,15 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Alex Morgan — Creative Developer & Designer",
+  title: "Alex Morgan — Developer Kreatif & Desainer",
   description:
-    "Personal portfolio of Alex Morgan — Creative Developer & Designer crafting elegant digital experiences.",
+    "Portofolio pribadi Alex Morgan — Developer Kreatif & Desainer yang menciptakan pengalaman digital elegan.",
   keywords: [
     "Alex Morgan",
-    "Creative Developer",
-    "Designer",
-    "Portfolio",
-    "Web Development",
+    "Developer Kreatif",
+    "Desainer",
+    "Portofolio",
+    "Pengembangan Web",
     "UI/UX",
   ],
   authors: [{ name: "Alex Morgan" }],
@@ -31,9 +31,9 @@ export const metadata: Metadata = {
     icon: "/logo.svg",
   },
   openGraph: {
-    title: "Alex Morgan — Creative Developer & Designer",
+    title: "Alex Morgan — Developer Kreatif & Desainer",
     description:
-      "Personal portfolio of Alex Morgan — Creative Developer & Designer crafting elegant digital experiences.",
+      "Portofolio pribadi Alex Morgan — Developer Kreatif & Desainer yang menciptakan pengalaman digital elegan.",
     type: "website",
   },
 };
@@ -44,7 +44,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="id" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
       >

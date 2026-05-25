@@ -25,7 +25,7 @@ export default function FooterSection() {
               Alex<span className="text-accent">.</span>Morgan
             </p>
             <p className="mt-1 text-sm text-muted-foreground">
-              Creative Developer & Designer
+              Developer Kreatif & Desainer
             </p>
           </div>
 
@@ -49,10 +49,10 @@ export default function FooterSection() {
             size="sm"
             onClick={scrollToTop}
             className="text-muted-foreground hover:text-accent cursor-pointer"
-            aria-label="Back to top"
+            aria-label="Kembali ke atas"
           >
             <ArrowUp className="size-4 mr-1" />
-            Back to Top
+            Kembali ke Atas
           </Button>
         </div>
 
@@ -60,11 +60,11 @@ export default function FooterSection() {
 
         <div className="flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-muted-foreground">
           <p>
-            &copy; {new Date().getFullYear()} Alex Morgan. All rights reserved.
+            &copy; {new Date().getFullYear()} Alex Morgan. Semua hak dilindungi.
           </p>
           <p className="flex items-center gap-1">
-            Made with <Heart className="size-3 text-accent fill-accent" /> and
-            a lot of coffee
+            Dibuat dengan <Heart className="size-3 text-accent fill-accent" /> dan
+            banyak kopi
           </p>
         </div>
       </div>

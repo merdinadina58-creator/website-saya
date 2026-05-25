@@ -26,7 +26,7 @@ const projects: Project[] = [
   {
     title: "Lumina Dashboard",
     description:
-      "A real-time analytics dashboard with interactive data visualizations and dark mode support.",
+      "Dashboard analitik real-time dengan visualisasi data interaktif dan dukungan mode gelap.",
     tags: ["React", "D3.js", "TypeScript"],
     gradient: "from-amber-400/80 to-orange-500/80",
     darkGradient: "dark:from-amber-600/40 dark:to-orange-700/40",
@@ -34,7 +34,7 @@ const projects: Project[] = [
   {
     title: "Verdant Store",
     description:
-      "An e-commerce platform with seamless checkout flow and responsive product catalog.",
+      "Platform e-commerce dengan alur checkout yang mulus dan katalog produk responsif.",
     tags: ["Next.js", "Stripe", "Prisma"],
     gradient: "from-emerald-400/80 to-teal-500/80",
     darkGradient: "dark:from-emerald-600/40 dark:to-teal-700/40",
@@ -42,7 +42,7 @@ const projects: Project[] = [
   {
     title: "Synthwave Player",
     description:
-      "A music streaming UI with waveform visualizations and playlist management.",
+      "UI streaming musik dengan visualisasi gelombang suara dan manajemen playlist.",
     tags: ["Vue.js", "Web Audio", "Tailwind"],
     gradient: "from-rose-400/80 to-pink-500/80",
     darkGradient: "dark:from-rose-600/40 dark:to-pink-700/40",
@@ -50,7 +50,7 @@ const projects: Project[] = [
   {
     title: "Atlas Maps",
     description:
-      "An interactive mapping application with custom markers and route optimization.",
+      "Aplikasi pemetaan interaktif dengan penanda kustom dan optimasi rute.",
     tags: ["React", "Mapbox", "Node.js"],
     gradient: "from-sky-400/80 to-cyan-500/80",
     darkGradient: "dark:from-sky-600/40 dark:to-cyan-700/40",
@@ -58,7 +58,7 @@ const projects: Project[] = [
   {
     title: "Noctis Blog",
     description:
-      "A minimalist blogging platform with markdown editing and SEO optimization.",
+      "Platform blog minimalis dengan pengeditan markdown dan optimasi SEO.",
     tags: ["Next.js", "MDX", "Vercel"],
     gradient: "from-violet-400/80 to-purple-500/80",
     darkGradient: "dark:from-violet-600/40 dark:to-purple-700/40",
@@ -66,7 +66,7 @@ const projects: Project[] = [
   {
     title: "Forge CMS",
     description:
-      "A headless content management system with drag-and-drop page building.",
+      "Sistem manajemen konten headless dengan pembangun halaman seret dan lepas.",
     tags: ["TypeScript", "GraphQL", "React"],
     gradient: "from-yellow-400/80 to-amber-500/80",
     darkGradient: "dark:from-yellow-600/40 dark:to-amber-700/40",
@@ -88,14 +88,14 @@ export default function PortfolioSection() {
           className="mb-16 text-center"
         >
           <p className="text-sm font-medium uppercase tracking-widest text-accent">
-            Portfolio
+            Portofolio
           </p>
           <h2 className="mt-3 text-3xl sm:text-4xl font-bold text-foreground">
-            Selected Projects
+            Proyek Pilihan
           </h2>
           <p className="mx-auto mt-4 max-w-2xl text-muted-foreground">
-            A curated selection of projects that showcase my skills in design,
-            development, and problem-solving.
+            Pilihan kurasi proyek yang menampilkan kemampuan saya dalam desain,
+            pengembangan, dan pemecahan masalah.
           </p>
         </motion.div>
 
@@ -152,7 +152,7 @@ export default function PortfolioSection() {
                     className="text-xs hover:text-accent min-h-[36px] cursor-pointer"
                   >
                     <Github className="size-3.5 mr-1" />
-                    Code
+                    Kode
                   </Button>
                   <Button
                     variant="ghost"
@@ -160,7 +160,7 @@ export default function PortfolioSection() {
                     className="text-xs hover:text-accent min-h-[36px] cursor-pointer"
                   >
                     <ExternalLink className="size-3.5 mr-1" />
-                    Live Demo
+                    Demo
                   </Button>
                 </CardFooter>
               </Card>

@@ -32,7 +32,7 @@ export default function HeroSection() {
           className="mb-6 inline-flex items-center gap-2 rounded-full border border-accent/30 bg-accent/10 px-4 py-1.5 text-sm font-medium text-accent"
         >
           <Sparkles className="size-4" />
-          Available for freelance work
+          Tersedia untuk proyek freelance
         </motion.div>
 
         <motion.h1
@@ -51,7 +51,7 @@ export default function HeroSection() {
           transition={{ duration: 0.8, delay: 0.3, ease: "easeOut" }}
           className="mt-4 text-lg sm:text-xl md:text-2xl font-light text-muted-foreground"
         >
-          Creative Developer & Designer
+          Developer Kreatif & Desainer
         </motion.p>
 
         <motion.p
@@ -60,9 +60,9 @@ export default function HeroSection() {
           transition={{ duration: 0.8, delay: 0.45, ease: "easeOut" }}
           className="mx-auto mt-6 max-w-2xl text-sm sm:text-base text-muted-foreground/80 leading-relaxed"
         >
-          Crafting elegant digital experiences where design meets engineering.
-          I build beautiful, performant, and accessible web applications that
-          leave a lasting impression.
+          Menciptakan pengalaman digital yang elegan di mana desain bertemu teknologi.
+          Saya membangun aplikasi web yang indah, cepat, dan aksesibel yang
+          meninggalkan kesan mendalam.
         </motion.p>
 
         <motion.div
@@ -76,7 +76,7 @@ export default function HeroSection() {
             onClick={() => handleScrollTo("#portfolio")}
             className="bg-accent text-accent-foreground hover:bg-accent/90 shadow-lg cursor-pointer min-h-[44px] px-8"
           >
-            View My Work
+            Lihat Karya Saya
           </Button>
           <Button
             variant="outline"
@@ -84,7 +84,7 @@ export default function HeroSection() {
             onClick={() => handleScrollTo("#contact")}
             className="border-accent/40 text-accent hover:bg-accent/10 min-h-[44px] px-8 cursor-pointer"
           >
-            Get in Touch
+            Hubungi Saya
           </Button>
         </motion.div>
       </div>
@@ -101,7 +101,7 @@ export default function HeroSection() {
           transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
           className="flex flex-col items-center gap-2 text-muted-foreground/50"
         >
-          <span className="text-xs tracking-widest uppercase">Scroll</span>
+          <span className="text-xs tracking-widest uppercase">Gulir</span>
           <ArrowDown className="size-4" />
         </motion.div>
       </motion.div>
