@@ -82,7 +82,7 @@ export default function HeroSection() {
       {/* Content */}
       <div className="relative z-10 mx-auto max-w-4xl px-4 sm:px-6 text-center">
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
+          initial={false}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, ease: "easeOut" }}
           className="mb-6 inline-flex items-center gap-2 rounded-full border border-accent/30 bg-accent/10 px-4 py-1.5 text-sm font-medium text-accent"
@@ -92,7 +92,7 @@ export default function HeroSection() {
         </motion.div>
 
         <motion.h1
-          initial={{ opacity: 0, y: 30 }}
+          initial={false}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.15, ease: "easeOut" }}
           className="text-4xl sm:text-5xl md:text-7xl font-bold tracking-tight text-foreground"
@@ -104,7 +104,7 @@ export default function HeroSection() {
         </motion.h1>
 
         <motion.p
-          initial={{ opacity: 0, y: 30 }}
+          initial={false}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.3, ease: "easeOut" }}
           className="mt-4 text-lg sm:text-xl md:text-2xl font-light text-muted-foreground"
@@ -113,7 +113,7 @@ export default function HeroSection() {
         </motion.p>
 
         <motion.p
-          initial={{ opacity: 0, y: 30 }}
+          initial={false}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.45, ease: "easeOut" }}
           className="mx-auto mt-6 max-w-2xl text-sm sm:text-base text-muted-foreground/80 leading-relaxed"
@@ -122,7 +122,7 @@ export default function HeroSection() {
         </motion.p>
 
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
+          initial={false}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.6, ease: "easeOut" }}
           className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4"
@@ -147,7 +147,7 @@ export default function HeroSection() {
 
       {/* Scroll Indicator */}
       <motion.div
-        initial={{ opacity: 0 }}
+        initial={false}
         animate={{ opacity: 1 }}
         transition={{ delay: 1.2, duration: 0.8 }}
         className="absolute bottom-8 left-1/2 -translate-x-1/2"

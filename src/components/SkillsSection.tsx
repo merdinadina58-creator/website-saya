@@ -205,7 +205,7 @@ export default function SkillsSection() {
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         {/* Section Header */}
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
+          initial={false}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.6 }}
           className="mb-16 text-center"
@@ -226,7 +226,7 @@ export default function SkillsSection() {
           {skills.categories.map((category, catIdx) => (
             <motion.div
               key={category.id}
-              initial={{ opacity: 0, y: 30 }}
+              initial={false}
               animate={isInView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.6, delay: 0.2 + catIdx * 0.15 }}
             >
@@ -247,7 +247,7 @@ export default function SkillsSection() {
                     {category.skills.map((skill, skillIdx) => (
                       <motion.div
                         key={skill.name}
-                        initial={{ opacity: 0, x: -20 }}
+                        initial={false}
                         animate={isInView ? { opacity: 1, x: 0 } : {}}
                         transition={{
                           duration: 0.4,

@@ -124,7 +124,7 @@ export default function AboutSection() {
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         {/* Section Header */}
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
+          initial={false}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.6 }}
           className="mb-16 text-center"
@@ -141,7 +141,7 @@ export default function AboutSection() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
           {/* Image */}
           <motion.div
-            initial={{ opacity: 0, x: -40 }}
+            initial={false}
             animate={isInView ? { opacity: 1, x: 0 } : {}}
             transition={{ duration: 0.7, delay: 0.2 }}
             className="relative mx-auto lg:mx-0 max-w-sm"
@@ -161,7 +161,7 @@ export default function AboutSection() {
 
           {/* Text Content */}
           <motion.div
-            initial={{ opacity: 0, x: 40 }}
+            initial={false}
             animate={isInView ? { opacity: 1, x: 0 } : {}}
             transition={{ duration: 0.7, delay: 0.3 }}
           >
@@ -178,7 +178,7 @@ export default function AboutSection() {
 
         {/* Stats */}
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
+          initial={false}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.6, delay: 0.5 }}
           className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-4"
@@ -186,7 +186,7 @@ export default function AboutSection() {
           {about.stats.map((stat, i) => (
             <motion.div
               key={stat.label}
-              initial={{ opacity: 0, y: 20 }}
+              initial={false}
               animate={isInView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.5, delay: 0.5 + i * 0.1 }}
             >
