@@ -35,7 +35,10 @@ export const metadata: Metadata = {
   ],
   authors: [{ name: "Alex Morgan" }],
   icons: {
-    icon: "/logo-512.png",
+    icon: [
+      { url: "/favicon.ico", sizes: "32x32" },
+      { url: "/logo-512.png", sizes: "512x512", type: "image/png" },
+    ],
     apple: "/logo-512.png",
   },
   manifest: "/manifest.json",
@@ -60,6 +63,7 @@ export default function RootLayout({
   return (
     <html lang="id" suppressHydrationWarning>
       <head>
+        <link rel="icon" href="/favicon.ico" sizes="32x32" />
         <link rel="apple-touch-icon" href="/logo-512.png" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="mobile-web-app-capable" content="yes" />
@@ -88,11 +92,11 @@ export default function RootLayout({
           {children}
           <Toaster />
         </ThemeProvider>
-        {/* PWA Service Worker Registration */}
+        {/* PWA Service Worker Registration — only in production */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
-              if ('serviceWorker' in navigator) {
+              if ('serviceWorker' in navigator && window.location.protocol === 'https:') {
                 window.addEventListener('load', function() {
                   navigator.serviceWorker.register('/sw.js').catch(function() {});
                 });
