@@ -42,7 +42,7 @@ export const metadata: Metadata = {
     ],
     apple: "/logo-512.png",
   },
-  manifest: "/manifest.json",
+  manifest: "/api/manifest",
   openGraph: {
     title: "Alex Morgan — Developer Kreatif & Desainer",
     description:
@@ -66,7 +66,6 @@ export default function RootLayout({
       <head>
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="icon" href="/api/favicon" sizes="32x32" type="image/png" id="dynamic-favicon" />
-        <link rel="apple-touch-icon" href="/logo-512.png" />
         <link rel="apple-touch-icon" href="/api/logo-icon?size=512" id="dynamic-apple-icon" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="mobile-web-app-capable" content="yes" />

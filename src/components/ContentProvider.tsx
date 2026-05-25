@@ -110,7 +110,7 @@ export function ContentProvider({ children }: { children: ReactNode }) {
       setContent(updatedContent);
       saveToLocalStorage(updatedContent);
 
-      // Then try to persist to database
+      // Then try to persist to database (non-blocking — don't fail the edit if DB is down)
       try {
         const res = await fetch(`/api/content/${key}`, {
           method: "PUT",
@@ -120,28 +120,22 @@ export function ContentProvider({ children }: { children: ReactNode }) {
           },
           body: JSON.stringify({ value }),
         });
-        if (res.ok) {
-          // Database save succeeded — content is persisted server-side too
-        } else if (res.status === 401) {
+        if (res.status === 401) {
           // Session expired — clear admin state
           localStorage.removeItem("isAdmin");
           localStorage.removeItem("adminUsername");
           localStorage.removeItem("adminPassword");
           window.location.reload();
           throw new Error("Sesi admin berakhir. Silakan login kembali.");
-        } else if (res.status === 503) {
-          // Database unavailable (Vercel serverless) — that's OK,
-          // content is already saved in localStorage
-        } else {
-          const data = await res.json().catch(() => ({}));
-          throw new Error(data.error || "Gagal menyimpan konten");
         }
+        // All other responses (including 503, 500, etc.) are OK —
+        // content is already saved in localStorage
       } catch (e) {
-        // Re-throw auth errors
+        // Re-throw auth errors only
         if (e instanceof Error && e.message.includes("Sesi admin")) {
           throw e;
         }
-        // Network errors — content is still saved in localStorage, that's fine
+        // Network errors / API errors — content is still saved in localStorage, that's fine
       }
     },
     [content]
