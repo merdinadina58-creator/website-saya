@@ -1,20 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyPassword } from "@/lib/auth";
+import { verifyCredentials } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
   try {
-    const { password } = await request.json();
+    const { username, password } = await request.json();
 
-    if (!password) {
+    if (!username || !password) {
       return NextResponse.json(
-        { error: "Password wajib diisi" },
+        { error: "Username dan password wajib diisi" },
         { status: 400 }
       );
     }
 
-    const isValid = await verifyPassword(password);
+    const isValid = await verifyCredentials(username, password);
     if (!isValid) {
-      return NextResponse.json({ error: "Password salah" }, { status: 401 });
+      return NextResponse.json(
+        { error: "Username atau password salah" },
+        { status: 401 }
+      );
     }
 
     return NextResponse.json({ success: true });

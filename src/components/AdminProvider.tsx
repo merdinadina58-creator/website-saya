@@ -3,7 +3,6 @@
 import {
   createContext,
   useContext,
-  useState,
   useCallback,
   useSyncExternalStore,
   type ReactNode,
@@ -11,7 +10,8 @@ import {
 
 interface AdminContextType {
   isAdmin: boolean;
-  login: (password: string) => Promise<boolean>;
+  adminUsername: string;
+  login: (username: string, password: string) => Promise<boolean>;
   logout: () => void;
   getAuthHeaders: () => Record<string, string>;
 }
@@ -44,6 +44,14 @@ function getAdminServerSnapshot(): boolean {
   return false;
 }
 
+function getAdminUsernameSnapshot(): string {
+  return localStorage.getItem("adminUsername") || "";
+}
+
+function getAdminUsernameServerSnapshot(): string {
+  return "";
+}
+
 function notifyAdminChange() {
   window.dispatchEvent(new Event(ADMIN_CHANGE_EVENT));
 }
@@ -56,41 +64,53 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     getAdminServerSnapshot
   );
 
-  const login = useCallback(async (password: string): Promise<boolean> => {
-    try {
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password }),
-      });
-      if (res.ok) {
-        localStorage.setItem("isAdmin", "true");
-        localStorage.setItem("adminPassword", password);
-        notifyAdminChange();
-        return true;
+  const adminUsername = useSyncExternalStore(
+    subscribeToAdmin,
+    getAdminUsernameSnapshot,
+    getAdminUsernameServerSnapshot
+  );
+
+  const login = useCallback(
+    async (username: string, password: string): Promise<boolean> => {
+      try {
+        const res = await fetch("/api/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, password }),
+        });
+        if (res.ok) {
+          localStorage.setItem("isAdmin", "true");
+          localStorage.setItem("adminUsername", username);
+          localStorage.setItem("adminPassword", password);
+          notifyAdminChange();
+          return true;
+        }
+        return false;
+      } catch {
+        return false;
       }
-      return false;
-    } catch {
-      return false;
-    }
-  }, []);
+    },
+    []
+  );
 
   const logout = useCallback(() => {
     localStorage.removeItem("isAdmin");
+    localStorage.removeItem("adminUsername");
     localStorage.removeItem("adminPassword");
     notifyAdminChange();
   }, []);
 
   const getAuthHeaders = useCallback((): Record<string, string> => {
     if (typeof window === "undefined") return {};
+    const username = localStorage.getItem("adminUsername");
     const password = localStorage.getItem("adminPassword");
-    if (!password) return {};
-    return { "x-admin-password": password };
+    if (!username || !password) return {};
+    return { "x-admin-username": username, "x-admin-password": password };
   }, []);
 
   return (
     <AdminContext.Provider
-      value={{ isAdmin, login, logout, getAuthHeaders }}
+      value={{ isAdmin, adminUsername, login, logout, getAuthHeaders }}
     >
       {children}
     </AdminContext.Provider>

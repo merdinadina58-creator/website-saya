@@ -14,8 +14,9 @@ import {
   Globe,
   Lock,
   ShieldCheck,
-  KeyRound,
+  UserCog,
   LogOut,
+  User,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,6 +45,7 @@ import {
   DialogFooter,
   DialogClose,
 } from "@/components/ui/dialog";
+import { Separator } from "@/components/ui/separator";
 import { useContent } from "@/components/ContentProvider";
 import { useAdmin } from "@/components/AdminProvider";
 import { defaultApps, type AppItem } from "@/data/apps";
@@ -75,22 +77,30 @@ export default function Navbar() {
   const { theme, setTheme } = useTheme();
 
   // Admin state
-  const { isAdmin, login, logout } = useAdmin();
+  const { isAdmin, adminUsername, login, logout } = useAdmin();
+
+  // Login dialog
   const [loginOpen, setLoginOpen] = useState(false);
+  const [loginUsername, setLoginUsername] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [loginError, setLoginError] = useState("");
   const [loginLoading, setLoginLoading] = useState(false);
-  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [passwordError, setPasswordError] = useState("");
-  const [passwordLoading, setPasswordLoading] = useState(false);
+
+  // Account settings dialog
+  const [accountOpen, setAccountOpen] = useState(false);
+  const [accountCurrentUsername, setAccountCurrentUsername] = useState("");
+  const [accountCurrentPassword, setAccountCurrentPassword] = useState("");
+  const [accountNewUsername, setAccountNewUsername] = useState("");
+  const [accountNewPassword, setAccountNewPassword] = useState("");
+  const [accountConfirmPassword, setAccountConfirmPassword] = useState("");
+  const [accountError, setAccountError] = useState("");
+  const [accountSuccess, setAccountSuccess] = useState("");
+  const [accountLoading, setAccountLoading] = useState(false);
 
   const { content, updateContent } = useContent();
   const apps = (content.apps as AppItem[]) || defaultApps;
 
-  // Navbar brand from content (fallback to footer data or default)
+  // Navbar brand from content
   const footer = content.footer as { brandName?: string; brandAccent?: string } | undefined;
   const brandName = footer?.brandName || "Alex";
   const brandAccent = footer?.brandAccent || "Morgan";
@@ -123,63 +133,115 @@ export default function Navbar() {
     setLoginLoading(true);
     setLoginError("");
     try {
-      const success = await login(loginPassword);
+      const success = await login(loginUsername.trim(), loginPassword);
       if (success) {
         setLoginOpen(false);
+        setLoginUsername("");
         setLoginPassword("");
         setLoginError("");
       } else {
-        setLoginError("Password salah. Coba lagi.");
+        setLoginError("Username atau password salah. Coba lagi.");
       }
     } catch {
       setLoginError("Gagal login. Coba lagi.");
     } finally {
       setLoginLoading(false);
     }
-  }, [login, loginPassword]);
+  }, [login, loginUsername, loginPassword]);
 
-  // Password change handler
-  const handleChangePassword = useCallback(async () => {
-    setPasswordError("");
-    if (newPassword !== confirmPassword) {
-      setPasswordError("Password baru tidak cocok.");
+  // Account settings handler
+  const handleAccountSave = useCallback(async () => {
+    setAccountError("");
+    setAccountSuccess("");
+
+    if (!accountCurrentUsername.trim() || !accountCurrentPassword) {
+      setAccountError("Username dan password lama wajib diisi.");
       return;
     }
-    if (newPassword.length < 4) {
-      setPasswordError("Password baru minimal 4 karakter.");
+
+    if (accountNewPassword && accountNewPassword !== accountConfirmPassword) {
+      setAccountError("Password baru tidak cocok.");
       return;
     }
-    setPasswordLoading(true);
+
+    if (accountNewPassword && accountNewPassword.length < 4) {
+      setAccountError("Password baru minimal 4 karakter.");
+      return;
+    }
+
+    if (accountNewUsername.trim() && accountNewUsername.trim().length < 2) {
+      setAccountError("Username baru minimal 2 karakter.");
+      return;
+    }
+
+    setAccountLoading(true);
     try {
-      const res = await fetch("/api/auth/password", {
+      const res = await fetch("/api/auth/account", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
+          "x-admin-username": localStorage.getItem("adminUsername") || "",
           "x-admin-password": localStorage.getItem("adminPassword") || "",
         },
         body: JSON.stringify({
-          currentPassword,
-          newPassword,
+          currentUsername: accountCurrentUsername.trim(),
+          currentPassword: accountCurrentPassword,
+          newUsername: accountNewUsername.trim() || undefined,
+          newPassword: accountNewPassword || undefined,
         }),
       });
+
       if (res.ok) {
-        // Update stored password
-        localStorage.setItem("adminPassword", newPassword);
-        setPasswordDialogOpen(false);
-        setCurrentPassword("");
-        setNewPassword("");
-        setConfirmPassword("");
-        setPasswordError("");
+        const data = await res.json();
+
+        // Update stored credentials
+        const updatedUsername = data.username || accountCurrentUsername.trim();
+        const updatedPassword = accountNewPassword || accountCurrentPassword;
+        localStorage.setItem("adminUsername", updatedUsername);
+        localStorage.setItem("adminPassword", updatedPassword);
+        // Trigger state sync
+        window.dispatchEvent(new Event("admin-state-change"));
+
+        setAccountSuccess("Akun berhasil diperbarui!");
+        setAccountCurrentPassword("");
+        setAccountNewUsername("");
+        setAccountNewPassword("");
+        setAccountConfirmPassword("");
+
+        // Close dialog after short delay to show success
+        setTimeout(() => {
+          setAccountOpen(false);
+          setAccountSuccess("");
+          setAccountError("");
+        }, 1200);
       } else {
         const data = await res.json().catch(() => ({}));
-        setPasswordError(data.error || "Gagal mengubah password.");
+        setAccountError(data.error || "Gagal memperbarui akun.");
       }
     } catch {
-      setPasswordError("Gagal mengubah password.");
+      setAccountError("Gagal memperbarui akun.");
     } finally {
-      setPasswordLoading(false);
+      setAccountLoading(false);
     }
-  }, [currentPassword, newPassword, confirmPassword]);
+  }, [
+    accountCurrentUsername,
+    accountCurrentPassword,
+    accountNewUsername,
+    accountNewPassword,
+    accountConfirmPassword,
+  ]);
+
+  // Open account settings — pre-fill current username
+  const handleAccountOpen = useCallback(() => {
+    setAccountCurrentUsername(adminUsername || "");
+    setAccountCurrentPassword("");
+    setAccountNewUsername("");
+    setAccountNewPassword("");
+    setAccountConfirmPassword("");
+    setAccountError("");
+    setAccountSuccess("");
+    setAccountOpen(true);
+  }, [adminUsername]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -401,17 +463,25 @@ export default function Navbar() {
                       <ShieldCheck className="size-4" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-52">
-                    <DropdownMenuLabel className="text-xs text-muted-foreground">
-                      Mode Admin
+                  <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuLabel>
+                      <div className="flex items-center gap-2">
+                        <User className="size-4 text-accent" />
+                        <span className="text-foreground font-semibold">
+                          {adminUsername || "admin"}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        Mode Admin Aktif
+                      </p>
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
-                      onClick={() => setPasswordDialogOpen(true)}
+                      onClick={handleAccountOpen}
                       className="cursor-pointer"
                     >
-                      <KeyRound className="size-4 mr-2" />
-                      Ubah Password
+                      <UserCog className="size-4 mr-2" />
+                      Pengaturan Akun
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
@@ -472,16 +542,17 @@ export default function Navbar() {
                       <div className="space-y-2">
                         <div className="flex items-center gap-2 text-sm font-medium text-accent">
                           <ShieldCheck className="size-4" />
-                          Mode Admin Aktif
+                          <User className="size-3.5" />
+                          {adminUsername || "admin"}
                         </div>
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => setPasswordDialogOpen(true)}
+                          onClick={handleAccountOpen}
                           className="w-full text-xs"
                         >
-                          <KeyRound className="size-3.5 mr-1" />
-                          Ubah Password
+                          <UserCog className="size-3.5 mr-1" />
+                          Pengaturan Akun
                         </Button>
                         <Button
                           variant="outline"
@@ -616,7 +687,7 @@ export default function Navbar() {
         </div>
       </nav>
 
-      {/* Login Dialog */}
+      {/* ─── Login Dialog ─── */}
       <Dialog open={loginOpen} onOpenChange={setLoginOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -627,8 +698,24 @@ export default function Navbar() {
           </DialogHeader>
           <div className="space-y-4 py-4">
             <p className="text-sm text-muted-foreground">
-              Masukkan password admin untuk mengakses fitur edit website.
+              Masukkan username dan password untuk mengakses fitur edit website.
             </p>
+            <div className="space-y-2">
+              <label htmlFor="admin-username" className="text-sm font-medium">
+                Username
+              </label>
+              <Input
+                id="admin-username"
+                type="text"
+                placeholder="Masukkan username"
+                value={loginUsername}
+                onChange={(e) => {
+                  setLoginUsername(e.target.value);
+                  setLoginError("");
+                }}
+                autoComplete="username"
+              />
+            </div>
             <div className="space-y-2">
               <label htmlFor="admin-password" className="text-sm font-medium">
                 Password
@@ -645,6 +732,7 @@ export default function Navbar() {
                 onKeyDown={(e) => {
                   if (e.key === "Enter") handleLogin();
                 }}
+                autoComplete="current-password"
               />
             </div>
             {loginError && (
@@ -657,7 +745,7 @@ export default function Navbar() {
             </DialogClose>
             <Button
               onClick={handleLogin}
-              disabled={!loginPassword.trim() || loginLoading}
+              disabled={!loginUsername.trim() || !loginPassword.trim() || loginLoading}
               className="bg-accent text-accent-foreground hover:bg-accent/90"
             >
               {loginLoading ? "Memverifikasi..." : "Masuk"}
@@ -666,66 +754,142 @@ export default function Navbar() {
         </DialogContent>
       </Dialog>
 
-      {/* Change Password Dialog */}
-      <Dialog open={passwordDialogOpen} onOpenChange={setPasswordDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+      {/* ─── Account Settings Dialog ─── */}
+      <Dialog open={accountOpen} onOpenChange={setAccountOpen}>
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <KeyRound className="size-5 text-accent" />
-              Ubah Password
+              <UserCog className="size-5 text-accent" />
+              Pengaturan Akun
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <label htmlFor="current-password" className="text-sm font-medium">
-                Password Lama
-              </label>
-              <Input
-                id="current-password"
-                type="password"
-                placeholder="Masukkan password lama"
-                value={currentPassword}
-                onChange={(e) => {
-                  setCurrentPassword(e.target.value);
-                  setPasswordError("");
-                }}
-              />
+          <div className="space-y-6 py-4">
+            {/* Current credentials */}
+            <div className="rounded-lg border border-border p-4 space-y-4 bg-muted/30">
+              <p className="text-sm font-semibold text-foreground">
+                Verifikasi Identitas
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Masukkan username dan password lama untuk mengkonfirmasi perubahan.
+              </p>
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <label htmlFor="acct-current-username" className="text-sm font-medium">
+                    Username Lama
+                  </label>
+                  <Input
+                    id="acct-current-username"
+                    type="text"
+                    placeholder="Username saat ini"
+                    value={accountCurrentUsername}
+                    onChange={(e) => {
+                      setAccountCurrentUsername(e.target.value);
+                      setAccountError("");
+                      setAccountSuccess("");
+                    }}
+                    autoComplete="username"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label htmlFor="acct-current-password" className="text-sm font-medium">
+                    Password Lama
+                  </label>
+                  <Input
+                    id="acct-current-password"
+                    type="password"
+                    placeholder="Password saat ini"
+                    value={accountCurrentPassword}
+                    onChange={(e) => {
+                      setAccountCurrentPassword(e.target.value);
+                      setAccountError("");
+                      setAccountSuccess("");
+                    }}
+                    autoComplete="current-password"
+                  />
+                </div>
+              </div>
             </div>
-            <div className="space-y-2">
-              <label htmlFor="new-password" className="text-sm font-medium">
-                Password Baru
-              </label>
-              <Input
-                id="new-password"
-                type="password"
-                placeholder="Masukkan password baru"
-                value={newPassword}
-                onChange={(e) => {
-                  setNewPassword(e.target.value);
-                  setPasswordError("");
-                }}
-              />
+
+            <Separator />
+
+            {/* New credentials */}
+            <div className="space-y-4">
+              <p className="text-sm font-semibold text-foreground">
+                Perubahan Baru
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Isi field yang ingin Anda ubah. Kosongkan jika tidak ingin mengubah.
+              </p>
+
+              <div className="space-y-2">
+                <label htmlFor="acct-new-username" className="text-sm font-medium">
+                  Username Baru
+                </label>
+                <Input
+                  id="acct-new-username"
+                  type="text"
+                  placeholder="Kosongkan jika tidak ingin mengubah"
+                  value={accountNewUsername}
+                  onChange={(e) => {
+                    setAccountNewUsername(e.target.value);
+                    setAccountError("");
+                    setAccountSuccess("");
+                  }}
+                  autoComplete="off"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="acct-new-password" className="text-sm font-medium">
+                  Password Baru
+                </label>
+                <Input
+                  id="acct-new-password"
+                  type="password"
+                  placeholder="Kosongkan jika tidak ingin mengubah"
+                  value={accountNewPassword}
+                  onChange={(e) => {
+                    setAccountNewPassword(e.target.value);
+                    setAccountError("");
+                    setAccountSuccess("");
+                  }}
+                  autoComplete="new-password"
+                />
+              </div>
+
+              {accountNewPassword && (
+                <div className="space-y-2">
+                  <label htmlFor="acct-confirm-password" className="text-sm font-medium">
+                    Konfirmasi Password Baru
+                  </label>
+                  <Input
+                    id="acct-confirm-password"
+                    type="password"
+                    placeholder="Ulangi password baru"
+                    value={accountConfirmPassword}
+                    onChange={(e) => {
+                      setAccountConfirmPassword(e.target.value);
+                      setAccountError("");
+                      setAccountSuccess("");
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleAccountSave();
+                    }}
+                    autoComplete="new-password"
+                  />
+                </div>
+              )}
             </div>
-            <div className="space-y-2">
-              <label htmlFor="confirm-password" className="text-sm font-medium">
-                Konfirmasi Password Baru
-              </label>
-              <Input
-                id="confirm-password"
-                type="password"
-                placeholder="Ulangi password baru"
-                value={confirmPassword}
-                onChange={(e) => {
-                  setConfirmPassword(e.target.value);
-                  setPasswordError("");
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handleChangePassword();
-                }}
-              />
-            </div>
-            {passwordError && (
-              <p className="text-sm text-destructive">{passwordError}</p>
+
+            {accountError && (
+              <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3">
+                <p className="text-sm text-destructive">{accountError}</p>
+              </div>
+            )}
+            {accountSuccess && (
+              <div className="rounded-lg border border-green-500/30 bg-green-500/5 px-4 py-3">
+                <p className="text-sm text-green-600 dark:text-green-400">{accountSuccess}</p>
+              </div>
             )}
           </div>
           <DialogFooter>
@@ -733,16 +897,15 @@ export default function Navbar() {
               <Button variant="outline">Batal</Button>
             </DialogClose>
             <Button
-              onClick={handleChangePassword}
+              onClick={handleAccountSave}
               disabled={
-                !currentPassword.trim() ||
-                !newPassword.trim() ||
-                !confirmPassword.trim() ||
-                passwordLoading
+                !accountCurrentUsername.trim() ||
+                !accountCurrentPassword ||
+                accountLoading
               }
               className="bg-accent text-accent-foreground hover:bg-accent/90"
             >
-              {passwordLoading ? "Menyimpan..." : "Simpan Password"}
+              {accountLoading ? "Menyimpan..." : "Simpan Perubahan"}
             </Button>
           </DialogFooter>
         </DialogContent>

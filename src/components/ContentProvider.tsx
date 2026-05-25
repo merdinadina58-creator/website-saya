@@ -38,9 +38,10 @@ export function useContent() {
 
 function getAuthHeaders(): Record<string, string> {
   if (typeof window === "undefined") return {};
+  const username = localStorage.getItem("adminUsername");
   const password = localStorage.getItem("adminPassword");
-  if (!password) return {};
-  return { "x-admin-password": password };
+  if (!username || !password) return {};
+  return { "x-admin-username": username, "x-admin-password": password };
 }
 
 export function ContentProvider({ children }: { children: ReactNode }) {
@@ -81,6 +82,7 @@ export function ContentProvider({ children }: { children: ReactNode }) {
         } else if (res.status === 401) {
           // Session expired — clear admin state
           localStorage.removeItem("isAdmin");
+          localStorage.removeItem("adminUsername");
           localStorage.removeItem("adminPassword");
           window.location.reload();
           throw new Error("Sesi admin berakhir. Silakan login kembali.");
