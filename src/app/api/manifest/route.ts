@@ -61,9 +61,7 @@ export async function GET() {
     }
   }
 
-  // Use clean URL paths (no query parameters) — better Android compatibility
-  // Separate "any" (regular, transparent bg) and "maskable" (padded, solid bg) icons
-  // prevents Chrome badge on Android home screen
+  // Clean icon paths + separate any/maskable purposes
   const icons = hasCustomLogo
     ? [
         { src: "/api/icon-192", sizes: "192x192", type: "image/png", purpose: "any" },
@@ -74,11 +72,13 @@ export async function GET() {
     : [
         { src: "/logo-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
         { src: "/logo-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
-        { src: "/logo-192.png", sizes: "192x192", type: "image/png", purpose: "maskable" },
-        { src: "/logo-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+        { src: "/logo-192-maskable.png", sizes: "192x192", type: "image/png", purpose: "maskable" },
+        { src: "/logo-512-maskable.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
       ];
 
   const manifest = {
+    // 'id' is required by Chrome 96+ for proper PWA identity and installability
+    id: "/",
     name: siteName,
     short_name: shortName,
     description,
