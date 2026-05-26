@@ -60,6 +60,15 @@ const navLinks = [
   { label: "Kontak", href: "#contact" },
 ];
 
+// Safe URL hostname extractor — never throws
+function getHostname(url: string): string {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return "";
+  }
+}
+
 // ── useMounted hook ──
 const emptySubscribe = () => () => {};
 function useMounted() {
@@ -658,7 +667,7 @@ export default function Navbar() {
                     >
                       <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-accent/10 overflow-hidden">
                         <img
-                          src={`https://www.google.com/s2/favicons?domain=${encodeURIComponent(new URL(app.url).hostname)}&sz=64`}
+                          src={`https://www.google.com/s2/favicons?domain=${encodeURIComponent(getHostname(app.url))}&sz=64`}
                           alt=""
                           className="size-5 object-contain"
                           onError={(e) => {
@@ -1008,7 +1017,7 @@ export default function Navbar() {
                           >
                             <div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-accent/10 overflow-hidden">
                               <img
-                                src={`https://www.google.com/s2/favicons?domain=${encodeURIComponent(new URL(app.url).hostname)}&sz=64`}
+                                src={`https://www.google.com/s2/favicons?domain=${encodeURIComponent(getHostname(app.url))}&sz=64`}
                                 alt=""
                                 className="size-5 object-contain"
                                 onError={(e) => {
