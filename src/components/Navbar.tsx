@@ -112,6 +112,8 @@ function PasswordInput({
           onChange={onChange}
           onKeyDown={onKeyDown}
           autoComplete={autoComplete}
+          data-1p-ignore
+          data-lpignore="true"
           className="pr-10"
         />
         <button
@@ -1091,7 +1093,9 @@ export default function Navbar() {
                   setLoginUsername(e.target.value);
                   setLoginError("");
                 }}
-                autoComplete="username"
+                autoComplete="off"
+                data-1p-ignore
+                data-lpignore="true"
               />
             </div>
             <PasswordInput
@@ -1106,7 +1110,7 @@ export default function Navbar() {
               onKeyDown={(e) => {
                 if (e.key === "Enter") handleLogin();
               }}
-              autoComplete="current-password"
+              autoComplete="off"
             />
             {loginError && (
               <p className="text-sm text-destructive">{loginError}</p>
@@ -1160,7 +1164,9 @@ export default function Navbar() {
                       setAccountError("");
                       setAccountSuccess("");
                     }}
-                    autoComplete="username"
+                    autoComplete="off"
+                    data-1p-ignore
+                    data-lpignore="true"
                   />
                 </div>
                 <PasswordInput
@@ -1173,7 +1179,7 @@ export default function Navbar() {
                     setAccountError("");
                     setAccountSuccess("");
                   }}
-                  autoComplete="current-password"
+                  autoComplete="off"
                 />
               </div>
             </div>
@@ -1217,7 +1223,7 @@ export default function Navbar() {
                   setAccountError("");
                   setAccountSuccess("");
                 }}
-                autoComplete="new-password"
+                autoComplete="off"
               />
 
               {accountNewPassword && (
@@ -1234,7 +1240,7 @@ export default function Navbar() {
                   onKeyDown={(e) => {
                     if (e.key === "Enter") handleAccountSave();
                   }}
-                  autoComplete="new-password"
+                  autoComplete="off"
                 />
               )}
             </div>

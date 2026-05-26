@@ -248,9 +248,13 @@ export function ContentProvider({ children }: { children: ReactNode }) {
 
   const updateContent = useCallback(
     async (key: string, value: unknown) => {
-      // Optimistically update local state and localStorage first
-      // This ensures edits work even on Vercel where DB is read-only
-      const updatedContent = { ...content, [key]: value };
+      // Read from localStorage to avoid stale React state closure.
+      // When multiple updateContent calls happen in sequence (e.g., hero + footer),
+      // React state hasn't re-rendered yet, so using `content` from the closure
+      // would cause the second update to overwrite the first.
+      // localStorage is always up-to-date because writes are synchronous.
+      const currentContent = loadFromLocalStorage();
+      const updatedContent = { ...currentContent, [key]: value };
       setContent(updatedContent);
       saveToLocalStorage(updatedContent);
 
@@ -285,7 +289,7 @@ export function ContentProvider({ children }: { children: ReactNode }) {
         // Network errors / API errors — content is still saved in localStorage, that's fine
       }
     },
-    [content, scheduleCloudPush]
+    [scheduleCloudPush]
   );
 
   return (
