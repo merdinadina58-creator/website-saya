@@ -156,6 +156,8 @@ export default function FooterSection() {
               <a
                 key={social.label}
                 href={social.url}
+                target="_blank"
+                rel="noopener noreferrer"
                 aria-label={social.label}
                 className="flex size-9 items-center justify-center rounded-md text-muted-foreground hover:text-accent hover:bg-accent/10 transition-all duration-300"
               >

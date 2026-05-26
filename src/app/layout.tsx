@@ -109,6 +109,35 @@ export default function RootLayout({
             `,
           }}
         />
+        {/* Global handler: open external links in system browser (fixes PWA standalone back-button issue) */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              document.addEventListener('click', function(e) {
+                var link = e.target.closest('a');
+                if (!link) return;
+                var href = link.getAttribute('href') || '';
+                // Skip anchor links, empty links, and same-origin links
+                if (!href || href.startsWith('#') || href.startsWith('/')) return;
+                // Only handle http/https links (external URLs)
+                if (href.startsWith('http://') || href.startsWith('https://')) {
+                  // Check if it's a same-origin link
+                  try {
+                    var url = new URL(href);
+                    if (url.origin === window.location.origin) return;
+                  } catch(ex) {}
+                  // Open in system browser instead of PWA window
+                  link.setAttribute('target', '_blank');
+                  link.setAttribute('rel', 'noopener noreferrer');
+                }
+                // Also handle mailto: and tel: links
+                if (href.startsWith('mailto:') || href.startsWith('tel:')) {
+                  link.setAttribute('target', '_blank');
+                }
+              });
+            `,
+          }}
+        />
       </body>
     </html>
   );

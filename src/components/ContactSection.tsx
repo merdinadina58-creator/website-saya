@@ -245,6 +245,8 @@ export default function ContactSection() {
                     {info.href ? (
                       <a
                         href={info.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
                         className="text-sm font-medium text-foreground hover:text-accent transition-colors"
                       >
                         {info.value}
@@ -270,6 +272,8 @@ export default function ContactSection() {
                   <a
                     key={social.label}
                     href={social.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     aria-label={social.label}
                     className="flex size-11 items-center justify-center rounded-lg border border-border hover:border-accent/40 text-muted-foreground hover:text-accent transition-all duration-300 hover:shadow-md hover:shadow-accent/5"
                   >
