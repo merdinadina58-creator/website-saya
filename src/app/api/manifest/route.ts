@@ -11,7 +11,6 @@ export async function GET() {
   // 1. Try database first
   try {
     if (await isDbAvailable()) {
-      // Get hero content for name
       const heroRecord = await db.siteContent.findUnique({
         where: { key: "hero" },
       });
@@ -24,7 +23,6 @@ export async function GET() {
         }
       }
 
-      // Get logo for icon
       const logoRecord = await db.siteContent.findUnique({
         where: { key: "_logo" },
       });
@@ -39,13 +37,12 @@ export async function GET() {
     markDbUnavailable();
   }
 
-  // 2. Try cloud store as fallback (critical for Vercel where DB is ephemeral)
+  // 2. Try cloud store as fallback
   if (!hasCustomLogo || siteName === "Website Saya") {
     try {
       if (isCloudSyncAvailable()) {
         const cloudData = await readCloudData();
         if (cloudData) {
-          // Get hero name from cloud if not found in DB
           if (siteName === "Website Saya" && cloudData.content?.hero) {
             const hero = cloudData.content.hero as Record<string, unknown>;
             if (hero.name) {
@@ -54,7 +51,6 @@ export async function GET() {
               description = `Portofolio pribadi ${hero.name} yang menciptakan pengalaman digital elegan.`;
             }
           }
-          // Check logo in cloud
           if (cloudData.logo?.src?.startsWith("data:")) {
             hasCustomLogo = true;
           }
@@ -65,65 +61,21 @@ export async function GET() {
     }
   }
 
-  // Build icon entries — separate "any" and "maskable" purposes
-  // This prevents Android from showing the Chrome badge on the home screen icon
+  // Use clean URL paths (no query parameters) — better Android compatibility
+  // Separate "any" (regular, transparent bg) and "maskable" (padded, solid bg) icons
+  // prevents Chrome badge on Android home screen
   const icons = hasCustomLogo
     ? [
-        // Regular icons (full logo, transparent background)
-        {
-          src: "/api/logo-icon?size=192",
-          sizes: "192x192",
-          type: "image/png",
-          purpose: "any",
-        },
-        {
-          src: "/api/logo-icon?size=512",
-          sizes: "512x512",
-          type: "image/png",
-          purpose: "any",
-        },
-        // Maskable icons (logo in center 80%, solid background — safe area compliant)
-        {
-          src: "/api/logo-icon?size=192&maskable=true",
-          sizes: "192x192",
-          type: "image/png",
-          purpose: "maskable",
-        },
-        {
-          src: "/api/logo-icon?size=512&maskable=true",
-          sizes: "512x512",
-          type: "image/png",
-          purpose: "maskable",
-        },
+        { src: "/api/icon-192", sizes: "192x192", type: "image/png", purpose: "any" },
+        { src: "/api/icon-512", sizes: "512x512", type: "image/png", purpose: "any" },
+        { src: "/api/icon-192-maskable", sizes: "192x192", type: "image/png", purpose: "maskable" },
+        { src: "/api/icon-512-maskable", sizes: "512x512", type: "image/png", purpose: "maskable" },
       ]
     : [
-        // Static fallback icons
-        {
-          src: "/logo-192.png",
-          sizes: "192x192",
-          type: "image/png",
-          purpose: "any",
-        },
-        {
-          src: "/logo-512.png",
-          sizes: "512x512",
-          type: "image/png",
-          purpose: "any",
-        },
-        // Maskable fallback — same files but declared as maskable
-        // (Android will still prefer the "any" version if maskable looks wrong)
-        {
-          src: "/logo-192.png",
-          sizes: "192x192",
-          type: "image/png",
-          purpose: "maskable",
-        },
-        {
-          src: "/logo-512.png",
-          sizes: "512x512",
-          type: "image/png",
-          purpose: "maskable",
-        },
+        { src: "/logo-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
+        { src: "/logo-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
+        { src: "/logo-192.png", sizes: "192x192", type: "image/png", purpose: "maskable" },
+        { src: "/logo-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
       ];
 
   const manifest = {
@@ -131,6 +83,7 @@ export async function GET() {
     short_name: shortName,
     description,
     start_url: "/",
+    scope: "/",
     display: "standalone",
     background_color: "#0a0a0a",
     theme_color: "#d97706",

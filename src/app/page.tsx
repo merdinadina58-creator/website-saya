@@ -11,6 +11,7 @@ import FooterSection from "@/components/FooterSection";
 import AdminToolbar from "@/components/AdminToolbar";
 import DynamicTitle from "@/components/DynamicTitle";
 import SyncIndicator from "@/components/SyncIndicator";
+import PwaInstallPrompt from "@/components/PwaInstallPrompt";
 
 export default function Home() {
   return (
@@ -30,6 +31,7 @@ export default function Home() {
           </footer>
           <AdminToolbar />
           <SyncIndicator />
+          <PwaInstallPrompt />
         </div>
       </ContentProvider>
     </AdminProvider>

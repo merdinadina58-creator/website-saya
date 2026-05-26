@@ -66,7 +66,7 @@ export default function RootLayout({
       <head>
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="icon" href="/api/favicon" sizes="32x32" type="image/png" id="dynamic-favicon" />
-        <link rel="apple-touch-icon" href="/api/logo-icon?size=512" id="dynamic-apple-icon" />
+        <link rel="apple-touch-icon" href="/api/icon-512" id="dynamic-apple-icon" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="mobile-web-app-capable" content="yes" />
       </head>
@@ -101,8 +101,17 @@ export default function RootLayout({
               if ('serviceWorker' in navigator) {
                 window.addEventListener('load', function() {
                   navigator.serviceWorker.register('/sw.js').then(function(reg) {
-                    // Force update to latest SW
+                    // Force update — always get the latest service worker
                     reg.update();
+                    // Also listen for new SW waiting to activate
+                    reg.addEventListener('updatefound', function() {
+                      var newWorker = reg.installing;
+                      newWorker.addEventListener('statechange', function() {
+                        if (newWorker.state === 'activated') {
+                          // New SW activated — no reload needed, it takes over
+                        }
+                      });
+                    });
                   }).catch(function() {});
                 });
               }
