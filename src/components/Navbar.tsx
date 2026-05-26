@@ -513,6 +513,13 @@ export default function Navbar() {
         const updatedPassword = accountNewPassword || accountCurrentPassword;
         localStorage.setItem("adminUsername", updatedUsername);
         localStorage.setItem("adminPassword", updatedPassword);
+        // Also update cloud credentials in localStorage for cross-device login sync
+        try {
+          localStorage.setItem("cloudCredentials", JSON.stringify({
+            username: updatedUsername,
+            password: updatedPassword,
+          }));
+        } catch {}
         // Trigger state sync
         window.dispatchEvent(new Event("admin-state-change"));
 

@@ -103,9 +103,16 @@ export function ContentProvider({ children }: { children: ReactNode }) {
     try {
       setSyncStatus("syncing");
 
+      const authHeaders = getAuthHeaders();
+      // Only push to cloud if admin is logged in
+      if (!authHeaders["x-admin-username"]) {
+        setSyncStatus("unavailable");
+        return;
+      }
+
       // Get current credentials from localStorage
-      const username = localStorage.getItem("adminUsername") || "admin";
-      const password = localStorage.getItem("adminPassword") || "admin123";
+      const username = localStorage.getItem("adminUsername") || "";
+      const password = localStorage.getItem("adminPassword") || "";
 
       // Get current logo from localStorage
       let logo: Record<string, unknown> | undefined;
@@ -118,7 +125,7 @@ export function ContentProvider({ children }: { children: ReactNode }) {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          ...getAuthHeaders(),
+          ...authHeaders,
         },
         body: JSON.stringify({
           content: data,
@@ -168,12 +175,15 @@ export function ContentProvider({ children }: { children: ReactNode }) {
         }
       } catch {}
 
-      // 3. Fetch from cloud (GitHub Gist)
+      // 3. Fetch from cloud — pass auth headers to receive credentials (if logged in)
       let cloudData: ContentData = {};
       let cloudCredentials: { username: string; password: string } | null = null;
       let cloudAvailable = false;
       try {
-        const res = await fetch("/api/sync");
+        const authHeaders = getAuthHeaders();
+        const res = await fetch("/api/sync", {
+          headers: authHeaders,
+        });
         if (res.ok) {
           const data = await res.json();
           if (data.available) {
@@ -204,9 +214,17 @@ export function ContentProvider({ children }: { children: ReactNode }) {
       saveToLocalStorage(merged);
 
       // 6. Save cloud credentials to localStorage for AdminProvider
+      // (only available when user is authenticated)
       if (cloudCredentials) {
         try {
           localStorage.setItem("cloudCredentials", JSON.stringify(cloudCredentials));
+
+          // If already logged in, update session credentials to match cloud
+          const currentAdmin = localStorage.getItem("adminUsername");
+          if (currentAdmin === cloudCredentials.username) {
+            localStorage.setItem("adminPassword", cloudCredentials.password);
+            window.dispatchEvent(new Event("admin-state-change"));
+          }
         } catch {}
       }
 

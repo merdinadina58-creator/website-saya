@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyPassword, setAdminPassword } from "@/lib/auth";
+import { verifyCredentialsForUpdate, setAdminPassword } from "@/lib/auth";
+import { readCloudData, writeCloudData } from "@/lib/cloud-store";
 
 export async function PUT(request: NextRequest) {
   try {
@@ -19,15 +20,38 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const isValid = await verifyPassword(currentPassword);
-    if (!isValid) {
+    // Verify current password using the same cascade as login
+    // We need a username too — try to get from headers or use stored username
+    const headerUsername = request.headers.get("x-admin-username") || "admin";
+    const { valid } = await verifyCredentialsForUpdate(headerUsername, currentPassword);
+    if (!valid) {
       return NextResponse.json(
         { error: "Password lama salah" },
         { status: 401 }
       );
     }
 
-    await setAdminPassword(newPassword);
+    // Save to database
+    try {
+      await setAdminPassword(newPassword);
+    } catch {}
+
+    // Save to cloud for cross-device sync
+    try {
+      const existingCloud = await readCloudData();
+      const cloudData = existingCloud || {
+        content: {},
+        updatedAt: new Date().toISOString(),
+      };
+      if (cloudData.credentials) {
+        cloudData.credentials.password = newPassword;
+      } else {
+        cloudData.credentials = { username: headerUsername, password: newPassword };
+      }
+      cloudData.updatedAt = new Date().toISOString();
+      await writeCloudData(cloudData);
+    } catch {}
+
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Password change error:", error);

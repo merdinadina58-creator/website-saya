@@ -47,6 +47,17 @@ export async function setAdminPassword(newPassword: string): Promise<void> {
   });
 }
 
+/**
+ * Verify admin credentials from request headers.
+ *
+ * Cascade order:
+ * 1. Cloud credentials (persists across Vercel redeployments)
+ * 2. Database credentials (local changes)
+ * 3. Default credentials — ONLY if no custom credentials have been set
+ *
+ * This ensures that once a user changes their username/password,
+ * the old defaults (admin/admin123) no longer work.
+ */
 export async function verifyAdminFromHeader(
   request: Request
 ): Promise<boolean> {
@@ -54,29 +65,83 @@ export async function verifyAdminFromHeader(
   const password = request.headers.get("x-admin-password");
   if (!username || !password) return false;
 
-  // 1. Always check default credentials first — ensures auth works on Vercel/serverless
-  if (username === DEFAULT_USERNAME && password === DEFAULT_PASSWORD) {
-    return true;
-  }
+  let hasCustomCredentials = false;
 
-  // 2. Check cloud credentials (from GitHub Gist — persists across deployments)
+  // 1. Check cloud credentials first (persists across deployments)
   try {
     const { getCloudCredentials } = await import("@/lib/cloud-store");
     const cloudCreds = await getCloudCredentials();
-    if (cloudCreds && username === cloudCreds.username && password === cloudCreds.password) {
-      return true;
+    if (cloudCreds) {
+      hasCustomCredentials = true;
+      if (username === cloudCreds.username && password === cloudCreds.password) {
+        return true;
+      }
     }
   } catch {
     // Cloud not available
   }
 
-  // 3. Try database credentials (in case admin changed their password locally)
+  // 2. Check database credentials
   try {
-    const isValid = await verifyCredentials(username, password);
-    if (isValid) return true;
+    const storedUsername = await getAdminUsername();
+    const storedPassword = await getAdminPassword();
+    // If DB credentials differ from defaults, custom credentials exist
+    if (storedUsername !== DEFAULT_USERNAME || storedPassword !== DEFAULT_PASSWORD) {
+      hasCustomCredentials = true;
+    }
+    if (username === storedUsername && password === storedPassword) {
+      return true;
+    }
   } catch {
     // DB not available
   }
 
+  // 3. Default credentials — only allowed if NO custom credentials have been set
+  if (!hasCustomCredentials && username === DEFAULT_USERNAME && password === DEFAULT_PASSWORD) {
+    return true;
+  }
+
   return false;
+}
+
+/**
+ * Verify credentials for account update (same cascade as verifyAdminFromHeader).
+ * Returns whether the credentials are valid.
+ */
+export async function verifyCredentialsForUpdate(
+  username: string,
+  password: string
+): Promise<{ valid: boolean; hasCustomCredentials: boolean }> {
+  let hasCustomCredentials = false;
+
+  // 1. Check cloud credentials
+  try {
+    const { getCloudCredentials } = await import("@/lib/cloud-store");
+    const cloudCreds = await getCloudCredentials();
+    if (cloudCreds) {
+      hasCustomCredentials = true;
+      if (username === cloudCreds.username && password === cloudCreds.password) {
+        return { valid: true, hasCustomCredentials: true };
+      }
+    }
+  } catch {}
+
+  // 2. Check database credentials
+  try {
+    const storedUsername = await getAdminUsername();
+    const storedPassword = await getAdminPassword();
+    if (storedUsername !== DEFAULT_USERNAME || storedPassword !== DEFAULT_PASSWORD) {
+      hasCustomCredentials = true;
+    }
+    if (username === storedUsername && password === storedPassword) {
+      return { valid: true, hasCustomCredentials };
+    }
+  } catch {}
+
+  // 3. Default credentials — only if no custom credentials
+  if (!hasCustomCredentials && username === DEFAULT_USERNAME && password === DEFAULT_PASSWORD) {
+    return { valid: true, hasCustomCredentials: false };
+  }
+
+  return { valid: false, hasCustomCredentials };
 }

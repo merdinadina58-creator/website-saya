@@ -15,34 +15,46 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 1. Always check default credentials first — ensures login works on Vercel/serverless
-    if (username === DEFAULT_USERNAME && password === DEFAULT_PASSWORD) {
-      return NextResponse.json({ success: true });
-    }
+    let hasCustomCredentials = false;
 
-    // 2. Check cloud credentials (from GitHub Gist — persists across deployments)
+    // 1. Check cloud credentials first (persists across deployments)
     try {
       const cloudCreds = await getCloudCredentials();
-      if (cloudCreds && username === cloudCreds.username && password === cloudCreds.password) {
-        return NextResponse.json({ success: true });
+      if (cloudCreds) {
+        hasCustomCredentials = true;
+        if (username === cloudCreds.username && password === cloudCreds.password) {
+          return NextResponse.json({ success: true });
+        }
       }
     } catch {
       // Cloud credentials not available
     }
 
-    // 3. Try database credentials (in case admin changed their password locally)
+    // 2. Check database credentials
     try {
-      const { verifyCredentials } = await import("@/lib/auth");
+      const { verifyCredentials, getAdminUsername, getAdminPassword } = await import("@/lib/auth");
       const { isDbAvailable } = await import("@/lib/db");
 
       if (await isDbAvailable()) {
+        const storedUsername = await getAdminUsername();
+        const storedPassword = await getAdminPassword();
+        // If DB credentials differ from defaults, custom credentials exist
+        if (storedUsername !== DEFAULT_USERNAME || storedPassword !== DEFAULT_PASSWORD) {
+          hasCustomCredentials = true;
+        }
         const isValid = await verifyCredentials(username, password);
         if (isValid) {
           return NextResponse.json({ success: true });
         }
       }
     } catch {
-      // DB not available or query failed — already checked defaults above
+      // DB not available or query failed
+    }
+
+    // 3. Default credentials — ONLY if no custom credentials have been set
+    // Once the user changes their password, admin/admin123 no longer works
+    if (!hasCustomCredentials && username === DEFAULT_USERNAME && password === DEFAULT_PASSWORD) {
+      return NextResponse.json({ success: true });
     }
 
     return NextResponse.json(

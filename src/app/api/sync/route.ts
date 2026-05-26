@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { readCloudData, writeCloudData, isCloudSyncAvailable } from "@/lib/cloud-store";
 import { verifyAdminFromHeader, setAdminUsername, setAdminPassword } from "@/lib/auth";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     if (!isCloudSyncAvailable()) {
       return NextResponse.json({ available: false });
@@ -15,10 +15,20 @@ export async function GET() {
       return NextResponse.json({ available: true, data: null });
     }
 
-    // Cloud data exists
+    // Check if request is authenticated — only return credentials to admins
+    const isAdmin = await verifyAdminFromHeader(request);
+
+    // Build safe response — strip credentials for unauthenticated requests
+    const safeData = {
+      content: cloudData.content,
+      credentials: isAdmin ? cloudData.credentials : undefined,
+      logo: cloudData.logo,
+      updatedAt: cloudData.updatedAt,
+    };
+
     return NextResponse.json({
       available: true,
-      data: cloudData,
+      data: safeData,
       updatedAt: cloudData.updatedAt,
     });
   } catch (error) {

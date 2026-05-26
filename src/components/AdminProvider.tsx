@@ -83,6 +83,9 @@ function saveCloudCredentials(credentials: { username: string; password: string 
   }
 }
 
+const DEFAULT_USERNAME = "admin";
+const DEFAULT_PASSWORD = "admin123";
+
 export function AdminProvider({ children }: { children: ReactNode }) {
   // Hydration-safe admin state using useSyncExternalStore
   const isAdmin = useSyncExternalStore(
@@ -123,18 +126,43 @@ export function AdminProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(
     async (username: string, password: string): Promise<boolean> => {
-      // Fast path: check localStorage credentials first (includes cloud-synced credentials)
-      const storedUsername = localStorage.getItem(LS_USERNAME_KEY);
-      const storedPassword = localStorage.getItem(LS_PASSWORD_KEY);
-      if (storedUsername && storedPassword && username === storedUsername && password === storedPassword) {
-        localStorage.setItem(LS_ADMIN_KEY, "true");
-        notifyAdminChange();
-        return true;
+      let hasCustomCredentials = false;
+
+      // 1. Check cloud-synced credentials from localStorage first
+      // These are synced from GitHub and persist across devices
+      const cloudCreds = getCloudCredentials();
+      if (cloudCreds) {
+        hasCustomCredentials = true;
+        if (username === cloudCreds.username && password === cloudCreds.password) {
+          localStorage.setItem(LS_ADMIN_KEY, "true");
+          localStorage.setItem(LS_USERNAME_KEY, username);
+          localStorage.setItem(LS_PASSWORD_KEY, password);
+          notifyAdminChange();
+          return true;
+        }
       }
 
-      // Check cloud-synced credentials from localStorage
-      const cloudCreds = getCloudCredentials();
-      if (cloudCreds && username === cloudCreds.username && password === cloudCreds.password) {
+      // 2. Check previously stored session credentials
+      // (these are from a previous successful login on this device)
+      const storedUsername = localStorage.getItem(LS_USERNAME_KEY);
+      const storedPassword = localStorage.getItem(LS_PASSWORD_KEY);
+      if (storedUsername && storedPassword) {
+        // If stored credentials differ from defaults, custom credentials exist
+        if (storedUsername !== DEFAULT_USERNAME || storedPassword !== DEFAULT_PASSWORD) {
+          hasCustomCredentials = true;
+        }
+        if (username === storedUsername && password === storedPassword) {
+          localStorage.setItem(LS_ADMIN_KEY, "true");
+          localStorage.setItem(LS_USERNAME_KEY, username);
+          localStorage.setItem(LS_PASSWORD_KEY, password);
+          notifyAdminChange();
+          return true;
+        }
+      }
+
+      // 3. Default credentials — ONLY if no custom credentials have been set
+      // Once the user changes their password, admin/admin123 no longer works
+      if (!hasCustomCredentials && username === DEFAULT_USERNAME && password === DEFAULT_PASSWORD) {
         localStorage.setItem(LS_ADMIN_KEY, "true");
         localStorage.setItem(LS_USERNAME_KEY, username);
         localStorage.setItem(LS_PASSWORD_KEY, password);
@@ -142,7 +170,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
         return true;
       }
 
-      // Then try API (checks default + cloud + DB credentials)
+      // 4. Try API (server-side verification with same cascade logic)
       try {
         const res = await fetch("/api/auth/login", {
           method: "POST",
