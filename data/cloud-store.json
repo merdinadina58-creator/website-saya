@@ -1,1 +1,13 @@
-{"content":{},"updatedAt":""}
+{
+  "content": {
+    "footer": {
+      "brandName": "David",
+      "brandAccent": "Sitinjak"
+    }
+  },
+  "credentials": {
+    "username": "admin",
+    "password": "admin123"
+  },
+  "updatedAt": "2026-05-26T19:43:30.699Z"
+}
