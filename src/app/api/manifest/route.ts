@@ -65,9 +65,66 @@ export async function GET() {
     }
   }
 
-  // Use API routes for icons (they have cloud fallback too)
-  const iconSrc = hasCustomLogo ? "/api/logo-icon?size=192" : "/logo-192.png";
-  const iconSrc512 = hasCustomLogo ? "/api/logo-icon?size=512" : "/logo-512.png";
+  // Build icon entries — separate "any" and "maskable" purposes
+  // This prevents Android from showing the Chrome badge on the home screen icon
+  const icons = hasCustomLogo
+    ? [
+        // Regular icons (full logo, transparent background)
+        {
+          src: "/api/logo-icon?size=192",
+          sizes: "192x192",
+          type: "image/png",
+          purpose: "any",
+        },
+        {
+          src: "/api/logo-icon?size=512",
+          sizes: "512x512",
+          type: "image/png",
+          purpose: "any",
+        },
+        // Maskable icons (logo in center 80%, solid background — safe area compliant)
+        {
+          src: "/api/logo-icon?size=192&maskable=true",
+          sizes: "192x192",
+          type: "image/png",
+          purpose: "maskable",
+        },
+        {
+          src: "/api/logo-icon?size=512&maskable=true",
+          sizes: "512x512",
+          type: "image/png",
+          purpose: "maskable",
+        },
+      ]
+    : [
+        // Static fallback icons
+        {
+          src: "/logo-192.png",
+          sizes: "192x192",
+          type: "image/png",
+          purpose: "any",
+        },
+        {
+          src: "/logo-512.png",
+          sizes: "512x512",
+          type: "image/png",
+          purpose: "any",
+        },
+        // Maskable fallback — same files but declared as maskable
+        // (Android will still prefer the "any" version if maskable looks wrong)
+        {
+          src: "/logo-192.png",
+          sizes: "192x192",
+          type: "image/png",
+          purpose: "maskable",
+        },
+        {
+          src: "/logo-512.png",
+          sizes: "512x512",
+          type: "image/png",
+          purpose: "maskable",
+        },
+      ];
 
   const manifest = {
     name: siteName,
@@ -78,20 +135,7 @@ export async function GET() {
     background_color: "#0a0a0a",
     theme_color: "#d97706",
     orientation: "portrait-primary",
-    icons: [
-      {
-        src: iconSrc,
-        sizes: "192x192",
-        type: "image/png",
-        purpose: "any maskable",
-      },
-      {
-        src: iconSrc512,
-        sizes: "512x512",
-        type: "image/png",
-        purpose: "any maskable",
-      },
-    ],
+    icons,
   };
 
   return NextResponse.json(manifest, {

@@ -1,8 +1,8 @@
-// Service Worker for PWA — v3
+// Service Worker for PWA — v4
 // Intercepts manifest and icon requests to serve dynamic content from Cache API
-const CACHE_NAME = "website-saya-v3";
+const CACHE_NAME = "website-saya-v4";
 const STATIC_ASSETS = ["/"];
-const PWA_DATA_CACHE = "pwa-dynamic-data";
+const PWA_DATA_CACHE = "pwa-dynamic-data-v4";
 
 // Install - cache static assets
 self.addEventListener("install", (event) => {
@@ -48,11 +48,18 @@ self.addEventListener("message", (event) => {
             for (let i = 0; i < binaryString.length; i++) {
               bytes[i] = binaryString.charCodeAt(i);
             }
+
+            // Store regular icon (transparent background)
             const imageResponse = new Response(bytes, {
               headers: { "Content-Type": mimeType, "Cache-Control": "no-cache" },
             });
-            cache.put(new Request("/__pwa_icon_192__"), imageResponse);
-            cache.put(new Request("/__pwa_icon_512__"), imageResponse);
+            cache.put(new Request("/__pwa_icon_192__"), imageResponse.clone());
+            cache.put(new Request("/__pwa_icon_512__"), imageResponse.clone());
+
+            // Store maskable icon (same image but will be served from network with maskable param)
+            // The maskable padding is handled by the API route, not the SW
+            cache.put(new Request("/__pwa_icon_maskable_192__"), imageResponse.clone());
+            cache.put(new Request("/__pwa_icon_maskable_512__"), imageResponse);
           }
         } catch (e) {
           // Failed to store icon image
@@ -68,7 +75,7 @@ self.addEventListener("fetch", (event) => {
 
   const url = new URL(event.request.url);
 
-  // Intercept manifest request — inject dynamic name and icon
+  // Intercept manifest request — inject dynamic name and icons
   if (url.pathname === "/api/manifest" || url.pathname === "/manifest.json") {
     event.respondWith(
       (async () => {
@@ -111,11 +118,13 @@ self.addEventListener("fetch", (event) => {
                 manifest.short_name = metadata.siteShortName;
               }
 
-              // Override icons if we have a custom logo
+              // Override icons with separate "any" and "maskable" entries
               if (metadata.logoSrc) {
                 manifest.icons = [
-                  { src: "/__pwa_icon_192__", sizes: "192x192", type: "image/png", purpose: "any maskable" },
-                  { src: "/__pwa_icon_512__", sizes: "512x512", type: "image/png", purpose: "any maskable" },
+                  { src: "/api/logo-icon?size=192", sizes: "192x192", type: "image/png", purpose: "any" },
+                  { src: "/api/logo-icon?size=512", sizes: "512x512", type: "image/png", purpose: "any" },
+                  { src: "/api/logo-icon?size=192&maskable=true", sizes: "192x192", type: "image/png", purpose: "maskable" },
+                  { src: "/api/logo-icon?size=512&maskable=true", sizes: "512x512", type: "image/png", purpose: "maskable" },
                 ];
               }
 
@@ -126,7 +135,7 @@ self.addEventListener("fetch", (event) => {
 
             return networkResponse;
           } catch {
-            // Network failed — return basic manifest
+            // Network failed — return basic manifest with separate icon purposes
             return new Response(
               JSON.stringify({
                 name: metadata?.siteName || "Website Saya",
@@ -139,12 +148,16 @@ self.addEventListener("fetch", (event) => {
                 orientation: "portrait-primary",
                 icons: metadata?.logoSrc
                   ? [
-                      { src: "/__pwa_icon_192__", sizes: "192x192", type: "image/png", purpose: "any maskable" },
-                      { src: "/__pwa_icon_512__", sizes: "512x512", type: "image/png", purpose: "any maskable" },
+                      { src: "/api/logo-icon?size=192", sizes: "192x192", type: "image/png", purpose: "any" },
+                      { src: "/api/logo-icon?size=512", sizes: "512x512", type: "image/png", purpose: "any" },
+                      { src: "/api/logo-icon?size=192&maskable=true", sizes: "192x192", type: "image/png", purpose: "maskable" },
+                      { src: "/api/logo-icon?size=512&maskable=true", sizes: "512x512", type: "image/png", purpose: "maskable" },
                     ]
                   : [
-                      { src: "/logo-192.png", sizes: "192x192", type: "image/png", purpose: "any maskable" },
-                      { src: "/logo-512.png", sizes: "512x512", type: "image/png", purpose: "any maskable" },
+                      { src: "/logo-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
+                      { src: "/logo-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
+                      { src: "/logo-192.png", sizes: "192x192", type: "image/png", purpose: "maskable" },
+                      { src: "/logo-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
                     ],
               }),
               { headers: { "Content-Type": "application/manifest+json" } }
@@ -159,7 +172,8 @@ self.addEventListener("fetch", (event) => {
   }
 
   // Intercept PWA icon requests — serve from cache
-  if (url.pathname === "/__pwa_icon_192__" || url.pathname === "/__pwa_icon_512__") {
+  if (url.pathname === "/__pwa_icon_192__" || url.pathname === "/__pwa_icon_512__" ||
+      url.pathname === "/__pwa_icon_maskable_192__" || url.pathname === "/__pwa_icon_maskable_512__") {
     event.respondWith(
       (async () => {
         try {
