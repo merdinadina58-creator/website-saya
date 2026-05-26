@@ -1,8 +1,12 @@
 {
   "content": {
     "hero": {
-      "name": "Test"
+      "name": "David Sitinjak"
     }
   },
-  "updatedAt": "2026-05-26T19:13:04.015Z"
+  "credentials": {
+    "username": "admin",
+    "password": "admin123"
+  },
+  "updatedAt": "2026-05-26T19:13:47.092Z"
 }
