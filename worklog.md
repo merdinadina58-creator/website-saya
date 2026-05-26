@@ -68,3 +68,35 @@ Stage Summary:
 - Vercel deployment configured with vercel.json
 - prisma generate added to build pipeline for Vercel
 - Zero console errors confirmed in browser testing
+
+---
+Task ID: 4
+Agent: main
+Task: Implement credential update auto-apply and cross-device cloud sync
+
+Work Log:
+- Analyzed full authentication architecture: 3-tier cascade (default → cloud → DB)
+- Found critical issue: default credentials (admin/admin123) always worked, even after user changed them
+- Found security issue: GET /api/sync leaked admin credentials to unauthenticated users
+- Found that cloud sync was fully implemented but NOT configured (.env missing GITHUB_TOKEN and GITHUB_REPO)
+- Fixed auth cascade order: cloud → DB → defaults (defaults only allowed if NO custom credentials exist)
+- Updated src/lib/auth.ts: verifyAdminFromHeader() now checks cloud first, then DB, then defaults only if hasCustomCredentials=false
+- Added verifyCredentialsForUpdate() helper for consistent account verification
+- Updated src/app/api/auth/login/route.ts: same cascade order as verifyAdminFromHeader
+- Updated src/app/api/auth/account/route.ts: uses verifyCredentialsForUpdate for consistent verification
+- Updated src/app/api/auth/password/route.ts: same cascade + cloud sync on password change
+- Updated src/app/api/sync/route.ts: GET no longer returns credentials for unauthenticated requests
+- Updated src/components/AdminProvider.tsx: client-side login follows same cascade (cloud → session → defaults only if no custom)
+- Updated src/components/ContentProvider.tsx: passes auth headers to /api/sync GET, updates session credentials from cloud
+- Updated src/components/Navbar.tsx: after account save, also updates cloudCredentials localStorage
+- Configured .env with GITHUB_TOKEN and GITHUB_REPO for cloud sync
+- Removed .env from git tracking (contains secrets)
+- Reset cloud-store.json on GitHub to clean state
+- Tested: default login works, after credential change old defaults are rejected, new credentials accepted
+- Cloud sync confirmed working: account update saves to both DB and GitHub
+
+Stage Summary:
+- Credential update now auto-applies: once user changes username/password, old defaults no longer work
+- Cross-device sync enabled via GitHub Contents API (GITHUB_TOKEN + GITHUB_REPO configured)
+- Security: GET /api/sync no longer leaks credentials to unauthenticated users
+- Vercel needs GITHUB_TOKEN and GITHUB_REPO environment variables to be set in dashboard
