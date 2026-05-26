@@ -43,7 +43,13 @@ const defaultAbout = {
 
 export default function AboutSection() {
   const { content, updateContent } = useContent();
-  const about = (content.about as typeof defaultAbout) || defaultAbout;
+  const rawAbout = content.about as Partial<typeof defaultAbout> | undefined;
+  const about = {
+    ...defaultAbout,
+    ...rawAbout,
+    paragraphs: rawAbout?.paragraphs || defaultAbout.paragraphs,
+    stats: rawAbout?.stats || defaultAbout.stats,
+  };
   const hero = content.hero as { name?: string } | undefined;
   const displayName = hero?.name || "Alex Morgan";
   const { isAdmin } = useAdmin();

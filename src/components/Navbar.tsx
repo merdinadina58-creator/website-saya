@@ -269,7 +269,7 @@ export default function Navbar() {
   const [accountLoading, setAccountLoading] = useState(false);
 
   const { content, updateContent } = useContent();
-  const apps = (content.apps as AppItem[]) || defaultApps;
+  const apps: AppItem[] = Array.isArray(content.apps) ? content.apps as AppItem[] : defaultApps;
 
   // Navbar brand from content — derive from hero name (single source of truth)
   // Hero name is the primary name; footer brandName/brandAccent are fallback

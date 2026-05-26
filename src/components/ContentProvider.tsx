@@ -57,6 +57,31 @@ function loadFromLocalStorage(): ContentData {
   return {};
 }
 
+/** Deep merge: for each top-level key, merge objects but let arrays be replaced entirely.
+ *  Source values take priority over target values. */
+function deepMergeContent(target: ContentData, source: ContentData): ContentData {
+  const result: ContentData = { ...target };
+  for (const key of Object.keys(source)) {
+    const sourceVal = source[key];
+    const targetVal = target[key];
+    if (
+      sourceVal &&
+      typeof sourceVal === "object" &&
+      !Array.isArray(sourceVal) &&
+      targetVal &&
+      typeof targetVal === "object" &&
+      !Array.isArray(targetVal)
+    ) {
+      // Both are non-array objects → merge them (source overrides target keys)
+      result[key] = { ...targetVal, ...sourceVal };
+    } else {
+      // Arrays or primitives → source replaces target entirely
+      result[key] = sourceVal;
+    }
+  }
+  return result;
+}
+
 function saveToLocalStorage(content: ContentData) {
   try {
     localStorage.setItem(LS_KEY, JSON.stringify(content));
@@ -74,9 +99,9 @@ export function ContentProvider({ children }: { children: ReactNode }) {
       const res = await fetch("/api/content");
       if (res.ok) {
         const data = await res.json();
-        // Merge: API data takes priority, localStorage fills gaps
+        // Deep merge: API data takes priority but doesn't lose nested fields from localStorage
         const localData = loadFromLocalStorage();
-        const merged = { ...localData, ...data };
+        const merged = deepMergeContent(localData, data);
         setContent(merged);
         saveToLocalStorage(merged);
       } else {

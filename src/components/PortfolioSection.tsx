@@ -108,7 +108,12 @@ const defaultPortfolio: PortfolioData = {
 
 export default function PortfolioSection() {
   const { content, updateContent } = useContent();
-  const portfolio = (content.portfolio as unknown as PortfolioData) || defaultPortfolio;
+  const rawPortfolio = content.portfolio as Partial<PortfolioData> | undefined;
+  const portfolio: PortfolioData = {
+    ...defaultPortfolio,
+    ...rawPortfolio,
+    projects: rawPortfolio?.projects || defaultPortfolio.projects,
+  };
   const { isAdmin } = useAdmin();
   const { toast } = useToast();
 
@@ -249,7 +254,7 @@ export default function PortfolioSection() {
 
                 <CardContent className="pb-3">
                   <div className="flex flex-wrap gap-1.5">
-                    {project.tags.map((tag) => (
+                    {(project.tags || []).map((tag) => (
                       <Badge
                         key={tag}
                         variant="secondary"

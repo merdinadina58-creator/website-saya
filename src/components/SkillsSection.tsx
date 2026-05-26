@@ -94,7 +94,12 @@ const iconMap: Record<string, React.ReactNode> = {
 
 export default function SkillsSection() {
   const { content, updateContent } = useContent();
-  const skills = (content.skills as unknown as SkillsData) || defaultSkills;
+  const rawSkills = content.skills as Partial<SkillsData> | undefined;
+  const skills: SkillsData = {
+    ...defaultSkills,
+    ...rawSkills,
+    categories: rawSkills?.categories || defaultSkills.categories,
+  };
   const { isAdmin } = useAdmin();
   const { toast } = useToast();
 
@@ -249,7 +254,7 @@ export default function SkillsSection() {
 
                   {/* Progress Bars */}
                   <div className="space-y-4 mb-6">
-                    {category.skills.map((skill, skillIdx) => (
+                    {(category.skills || []).map((skill, skillIdx) => (
                       <motion.div
                         key={skill.name}
                         initial={false}
@@ -277,7 +282,7 @@ export default function SkillsSection() {
 
                   {/* Tags */}
                   <div className="flex flex-wrap gap-2">
-                    {category.tags.map((tag) => (
+                    {(category.tags || []).map((tag) => (
                       <Badge
                         key={tag}
                         variant="secondary"

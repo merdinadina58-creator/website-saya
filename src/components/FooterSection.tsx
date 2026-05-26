@@ -52,7 +52,12 @@ const socialIconMap: Record<string, React.ReactNode> = {
 
 export default function FooterSection() {
   const { content, updateContent } = useContent();
-  const footer = (content.footer as unknown as FooterData) || defaultFooter;
+  const rawFooter = content.footer as Partial<FooterData> | undefined;
+  const footer: FooterData = {
+    ...defaultFooter,
+    ...rawFooter,
+    socials: rawFooter?.socials || defaultFooter.socials,
+  };
   const { isAdmin } = useAdmin();
   const { toast } = useToast();
 

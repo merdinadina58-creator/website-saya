@@ -97,7 +97,13 @@ const socialIconMap: Record<string, React.ReactNode> = {
 
 export default function ContactSection() {
   const { content, updateContent } = useContent();
-  const contact = (content.contact as unknown as ContactData) || defaultContact;
+  const rawContact = content.contact as Partial<ContactData> | undefined;
+  const contact: ContactData = {
+    ...defaultContact,
+    ...rawContact,
+    items: rawContact?.items || defaultContact.items,
+    socials: rawContact?.socials || defaultContact.socials,
+  };
   const { isAdmin } = useAdmin();
   const { toast } = useToast();
 

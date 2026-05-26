@@ -28,7 +28,8 @@ const defaultHero = {
 
 export default function HeroSection() {
   const { content, updateContent } = useContent();
-  const hero = (content.hero as typeof defaultHero) || defaultHero;
+  const rawHero = content.hero as Partial<typeof defaultHero> | undefined;
+  const hero = { ...defaultHero, ...rawHero };
   const { isAdmin } = useAdmin();
 
   const [editOpen, setEditOpen] = useState(false);
