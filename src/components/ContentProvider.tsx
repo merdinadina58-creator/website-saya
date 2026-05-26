@@ -121,6 +121,20 @@ export function ContentProvider({ children }: { children: ReactNode }) {
         if (logoData) logo = JSON.parse(logoData);
       } catch {}
 
+      // Get about photo from localStorage
+      let aboutPhoto: string | undefined;
+      try {
+        const photoData = localStorage.getItem("website-about-photo");
+        if (photoData) aboutPhoto = photoData;
+      } catch {}
+
+      // Get hero background from localStorage
+      let heroBg: string | undefined;
+      try {
+        const bgData = localStorage.getItem("website-hero-bg");
+        if (bgData) heroBg = bgData;
+      } catch {}
+
       const res = await fetch("/api/sync", {
         method: "POST",
         headers: {
@@ -131,6 +145,8 @@ export function ContentProvider({ children }: { children: ReactNode }) {
           content: data,
           credentials: { username, password },
           logo,
+          aboutPhoto,
+          heroBg,
         }),
       });
 
@@ -196,6 +212,20 @@ export function ContentProvider({ children }: { children: ReactNode }) {
               if (data.data.logo?.src) {
                 try {
                   localStorage.setItem("website-logo", JSON.stringify(data.data.logo));
+                } catch {}
+              }
+
+              // Save cloud about photo to localStorage if available
+              if (data.data.aboutPhoto) {
+                try {
+                  localStorage.setItem("website-about-photo", data.data.aboutPhoto);
+                } catch {}
+              }
+
+              // Save cloud hero background to localStorage if available
+              if (data.data.heroBg) {
+                try {
+                  localStorage.setItem("website-hero-bg", data.data.heroBg);
                 } catch {}
               }
             }

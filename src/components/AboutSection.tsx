@@ -1,10 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { motion, useInView } from "framer-motion";
-import { useRef } from "react";
 import Image from "next/image";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { Pencil, Plus, Trash2, ImagePlus, Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -41,6 +40,29 @@ const defaultAbout = {
   ],
 };
 
+// localStorage key for about photo persistence
+const ABOUT_PHOTO_LS_KEY = "website-about-photo";
+
+function loadAboutPhoto(): string | null {
+  try {
+    const stored = localStorage.getItem(ABOUT_PHOTO_LS_KEY);
+    if (stored) return stored;
+  } catch {}
+  return null;
+}
+
+function saveAboutPhoto(dataUrl: string | null) {
+  try {
+    if (dataUrl) {
+      localStorage.setItem(ABOUT_PHOTO_LS_KEY, dataUrl);
+    } else {
+      localStorage.removeItem(ABOUT_PHOTO_LS_KEY);
+    }
+  } catch {
+    // localStorage might be full
+  }
+}
+
 export default function AboutSection() {
   const { content, updateContent } = useContent();
   const rawAbout = content.about as Partial<typeof defaultAbout> | undefined;
@@ -61,6 +83,69 @@ export default function AboutSection() {
   const [editOpen, setEditOpen] = useState(false);
   const [form, setForm] = useState(defaultAbout);
   const [saving, setSaving] = useState(false);
+
+  // Profile photo state
+  const [photoSrc, setPhotoSrc] = useState<string>("/avatar.png");
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const [photoError, setPhotoError] = useState("");
+  const photoFileRef = useRef<HTMLInputElement>(null);
+
+  // Load profile photo from localStorage on mount
+  useEffect(() => {
+    const localPhoto = loadAboutPhoto();
+    if (localPhoto) {
+      setPhotoSrc(localPhoto);
+    }
+  }, []);
+
+  // Profile photo upload handler
+  const handlePhotoUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate
+    if (file.size > 3 * 1024 * 1024) {
+      setPhotoError(`Ukuran file maksimal 3MB. File Anda: ${(file.size / 1024 / 1024).toFixed(1)}MB`);
+      return;
+    }
+    const allowedTypes = ["image/png", "image/jpeg", "image/jpg", "image/webp", "image/svg+xml"];
+    if (!allowedTypes.includes(file.type)) {
+      setPhotoError("Format file tidak didukung. Gunakan PNG, JPG, WEBP, atau SVG.");
+      return;
+    }
+
+    setPhotoUploading(true);
+    setPhotoError("");
+
+    try {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const dataUrl = reader.result as string;
+        setPhotoSrc(dataUrl);
+        saveAboutPhoto(dataUrl);
+        setPhotoUploading(false);
+        toast({ title: "Berhasil", description: "Foto profil berhasil diubah" });
+      };
+      reader.onerror = () => {
+        setPhotoError("Gagal membaca file. Coba lagi.");
+        setPhotoUploading(false);
+      };
+      reader.readAsDataURL(file);
+    } catch {
+      setPhotoError("Gagal mengupload foto. Coba lagi.");
+      setPhotoUploading(false);
+    }
+
+    // Reset file input
+    if (photoFileRef.current) photoFileRef.current.value = "";
+  }, [toast]);
+
+  // Remove profile photo (revert to default)
+  const handlePhotoRemove = useCallback(() => {
+    setPhotoSrc("/avatar.png");
+    saveAboutPhoto(null);
+    toast({ title: "Berhasil", description: "Foto profil dikembalikan ke default" });
+  }, [toast]);
 
   const handleEditOpen = () => {
     setForm({
@@ -121,6 +206,9 @@ export default function AboutSection() {
     setForm({ ...form, stats: updated });
   };
 
+  // Determine if the photo is custom or default
+  const isCustomPhoto = photoSrc !== "/avatar.png";
+
   return (
     <section id="about" className="py-20 sm:py-28 relative" ref={ref}>
       {/* Edit Button */}
@@ -161,16 +249,71 @@ export default function AboutSection() {
             transition={{ duration: 0.7, delay: 0.2 }}
             className="relative mx-auto lg:mx-0 max-w-sm"
           >
-            <div className="relative aspect-square overflow-hidden rounded-2xl">
-              <Image
-                src="/avatar.png"
-                alt={`${displayName} — Developer Kreatif & Desainer`}
-                fill
-                sizes="(max-width: 640px) 100vw, 384px"
-                className="object-cover"
-                priority
-              />
+            <div className="relative aspect-square overflow-hidden rounded-2xl group">
+              {isCustomPhoto ? (
+                // Custom photo: use regular img tag (supports data URLs)
+                <img
+                  src={photoSrc}
+                  alt={`${displayName} — Developer Kreatif & Desainer`}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                // Default photo: use Next.js Image for optimization
+                <Image
+                  src="/avatar.png"
+                  alt={`${displayName} — Developer Kreatif & Desainer`}
+                  fill
+                  sizes="(max-width: 640px) 100vw, 384px"
+                  className="object-cover"
+                  priority
+                />
+              )}
+
+              {/* Admin photo overlay */}
+              {isAdmin && (
+                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center gap-2">
+                  <input
+                    ref={photoFileRef}
+                    type="file"
+                    accept="image/png,image/jpeg,image/jpg,image/webp,image/svg+xml"
+                    onChange={handlePhotoUpload}
+                    className="hidden"
+                    aria-label="Upload foto profil"
+                  />
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => photoFileRef.current?.click()}
+                    disabled={photoUploading}
+                    className="gap-1.5"
+                  >
+                    {photoUploading ? (
+                      <Loader2 className="size-3.5 animate-spin" />
+                    ) : (
+                      <ImagePlus className="size-3.5" />
+                    )}
+                    {photoUploading ? "Mengupload..." : "Ganti Foto"}
+                  </Button>
+                  {isCustomPhoto && (
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={handlePhotoRemove}
+                      className="gap-1.5"
+                    >
+                      <Trash2 className="size-3.5" />
+                      Hapus Foto
+                    </Button>
+                  )}
+                </div>
+              )}
             </div>
+
+            {/* Photo upload error */}
+            {photoError && (
+              <p className="text-xs text-destructive mt-2 text-center">{photoError}</p>
+            )}
+
             {/* Decorative element */}
             <div className="absolute -z-10 -bottom-4 -right-4 w-full h-full rounded-2xl border-2 border-accent/30" />
           </motion.div>

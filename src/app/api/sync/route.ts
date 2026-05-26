@@ -23,6 +23,8 @@ export async function GET(request: NextRequest) {
       content: cloudData.content,
       credentials: isAdmin ? cloudData.credentials : undefined,
       logo: cloudData.logo,
+      aboutPhoto: cloudData.aboutPhoto,
+      heroBg: cloudData.heroBg,
       updatedAt: cloudData.updatedAt,
     };
 
@@ -50,7 +52,7 @@ export async function POST(request: NextRequest) {
 
     // Parse request body
     const body = await request.json();
-    const { content, credentials, logo } = body;
+    const { content, credentials, logo, aboutPhoto, heroBg } = body;
 
     // Add updatedAt timestamp
     const updatedAt = new Date().toISOString();
@@ -60,6 +62,8 @@ export async function POST(request: NextRequest) {
       content: content || {},
       credentials,
       logo,
+      aboutPhoto,
+      heroBg,
       updatedAt,
     });
 

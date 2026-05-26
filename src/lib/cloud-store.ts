@@ -32,6 +32,8 @@ export interface CloudStoreData {
   content: Record<string, unknown>;
   credentials?: CloudCredentials;
   logo?: CloudLogo;
+  aboutPhoto?: string; // base64 data URL for about section profile photo
+  heroBg?: string; // base64 data URL for hero background image
   updatedAt: string; // ISO timestamp
 }
 
