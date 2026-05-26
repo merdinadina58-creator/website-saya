@@ -1076,10 +1076,14 @@ export default function Navbar() {
               Login Admin
             </DialogTitle>
           </DialogHeader>
+          <form autoComplete="off" onSubmit={(e) => { e.preventDefault(); handleLogin(); }}>
           <div className="space-y-4 py-4">
             <p className="text-sm text-muted-foreground">
               Masukkan username dan password untuk mengakses fitur edit website.
             </p>
+            {/* Hidden decoy fields to trick browser autofill */}
+            <input type="text" name="username" style={{ display: "none" }} tabIndex={-1} autoComplete="username" />
+            <input type="password" name="password" style={{ display: "none" }} tabIndex={-1} autoComplete="current-password" />
             <div className="space-y-2">
               <label htmlFor="admin-username" className="text-sm font-medium">
                 Username
@@ -1093,9 +1097,12 @@ export default function Navbar() {
                   setLoginUsername(e.target.value);
                   setLoginError("");
                 }}
+                readOnly
+                onFocus={(e) => { e.target.removeAttribute("readonly"); }}
                 autoComplete="off"
                 data-1p-ignore
                 data-lpignore="true"
+                data-form-type="other"
               />
             </div>
             <PasswordInput
@@ -1110,7 +1117,9 @@ export default function Navbar() {
               onKeyDown={(e) => {
                 if (e.key === "Enter") handleLogin();
               }}
-              autoComplete="off"
+              autoComplete="new-password"
+              readOnly
+              onFocus={(e) => { e.target.removeAttribute("readonly"); }}
             />
             {loginError && (
               <p className="text-sm text-destructive">{loginError}</p>
@@ -1121,13 +1130,14 @@ export default function Navbar() {
               <Button variant="outline">Batal</Button>
             </DialogClose>
             <Button
-              onClick={handleLogin}
+              type="submit"
               disabled={!loginUsername.trim() || !loginPassword.trim() || loginLoading}
               className="bg-accent text-accent-foreground hover:bg-accent/90"
             >
               {loginLoading ? "Memverifikasi..." : "Masuk"}
             </Button>
           </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
 
@@ -1140,6 +1150,10 @@ export default function Navbar() {
               Pengaturan Akun
             </DialogTitle>
           </DialogHeader>
+          <form autoComplete="off" onSubmit={(e) => { e.preventDefault(); handleAccountSave(); }}>
+          {/* Hidden decoy fields to trick browser autofill */}
+          <input type="text" name="username" style={{ display: "none" }} tabIndex={-1} autoComplete="username" />
+          <input type="password" name="password" style={{ display: "none" }} tabIndex={-1} autoComplete="current-password" />
           <div className="space-y-6 py-4">
             {/* Current credentials */}
             <div className="rounded-lg border border-border p-4 space-y-4 bg-muted/30">
@@ -1164,9 +1178,12 @@ export default function Navbar() {
                       setAccountError("");
                       setAccountSuccess("");
                     }}
+                    readOnly
+                    onFocus={(e) => { e.target.removeAttribute("readonly"); }}
                     autoComplete="off"
                     data-1p-ignore
                     data-lpignore="true"
+                    data-form-type="other"
                   />
                 </div>
                 <PasswordInput
@@ -1179,7 +1196,9 @@ export default function Navbar() {
                     setAccountError("");
                     setAccountSuccess("");
                   }}
-                  autoComplete="off"
+                  autoComplete="new-password"
+                  readOnly
+                  onFocus={(e) => { e.target.removeAttribute("readonly"); }}
                 />
               </div>
             </div>
@@ -1209,7 +1228,11 @@ export default function Navbar() {
                     setAccountError("");
                     setAccountSuccess("");
                   }}
+                  readOnly
+                  onFocus={(e) => { e.target.removeAttribute("readonly"); }}
                   autoComplete="off"
+                  data-1p-ignore
+                  data-lpignore="true"
                 />
               </div>
 
@@ -1223,7 +1246,9 @@ export default function Navbar() {
                   setAccountError("");
                   setAccountSuccess("");
                 }}
-                autoComplete="off"
+                autoComplete="new-password"
+                readOnly
+                onFocus={(e) => { e.target.removeAttribute("readonly"); }}
               />
 
               {accountNewPassword && (
@@ -1240,7 +1265,9 @@ export default function Navbar() {
                   onKeyDown={(e) => {
                     if (e.key === "Enter") handleAccountSave();
                   }}
-                  autoComplete="off"
+                  autoComplete="new-password"
+                  readOnly
+                  onFocus={(e) => { e.target.removeAttribute("readonly"); }}
                 />
               )}
             </div>
@@ -1261,7 +1288,7 @@ export default function Navbar() {
               <Button variant="outline">Batal</Button>
             </DialogClose>
             <Button
-              onClick={handleAccountSave}
+              type="submit"
               disabled={
                 !accountCurrentUsername.trim() ||
                 !accountCurrentPassword ||
@@ -1272,6 +1299,7 @@ export default function Navbar() {
               {accountLoading ? "Menyimpan..." : "Simpan Perubahan"}
             </Button>
           </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
 

@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
-import { ArrowDown, Sparkles, Pencil } from "lucide-react";
+import { ArrowDown, Sparkles, Pencil, ImagePlus, Trash2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -26,6 +26,28 @@ const defaultHero = {
   cta: "Hubungi Saya",
 };
 
+const HERO_BG_LS_KEY = "website-hero-bg";
+
+function loadHeroBg(): string | null {
+  try {
+    const stored = localStorage.getItem(HERO_BG_LS_KEY);
+    if (stored) return stored;
+  } catch {}
+  return null;
+}
+
+function saveHeroBg(dataUrl: string | null) {
+  try {
+    if (dataUrl) {
+      localStorage.setItem(HERO_BG_LS_KEY, dataUrl);
+    } else {
+      localStorage.removeItem(HERO_BG_LS_KEY);
+    }
+  } catch {
+    // localStorage might be full
+  }
+}
+
 export default function HeroSection() {
   const { content, updateContent } = useContent();
   const rawHero = content.hero as Partial<typeof defaultHero> | undefined;
@@ -35,6 +57,20 @@ export default function HeroSection() {
   const [editOpen, setEditOpen] = useState(false);
   const [form, setForm] = useState(defaultHero);
   const [saving, setSaving] = useState(false);
+
+  // Background image state
+  const [bgImage, setBgImage] = useState<string>("/hero-bg.png");
+  const [bgUploading, setBgUploading] = useState(false);
+  const [bgError, setBgError] = useState("");
+  const bgFileRef = useRef<HTMLInputElement>(null);
+
+  // Load background image from localStorage on mount
+  useEffect(() => {
+    const localBg = loadHeroBg();
+    if (localBg) {
+      setBgImage(localBg);
+    }
+  }, []);
 
   const handleEditOpen = () => {
     setForm({ ...hero });
@@ -64,6 +100,55 @@ export default function HeroSection() {
     }
   };
 
+  // Background image upload handler
+  const handleBgUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate
+    if (file.size > 3 * 1024 * 1024) {
+      setBgError(`Ukuran file maksimal 3MB. File Anda: ${(file.size / 1024 / 1024).toFixed(1)}MB`);
+      return;
+    }
+    const allowedTypes = ["image/png", "image/jpeg", "image/jpg", "image/webp", "image/svg+xml"];
+    if (!allowedTypes.includes(file.type)) {
+      setBgError("Format file tidak didukung. Gunakan PNG, JPG, WEBP, atau SVG.");
+      return;
+    }
+
+    setBgUploading(true);
+    setBgError("");
+
+    try {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const dataUrl = reader.result as string;
+        setBgImage(dataUrl);
+        saveHeroBg(dataUrl);
+        setBgUploading(false);
+        toast({ title: "Berhasil", description: "Gambar latar belakang berhasil diubah" });
+      };
+      reader.onerror = () => {
+        setBgError("Gagal membaca file. Coba lagi.");
+        setBgUploading(false);
+      };
+      reader.readAsDataURL(file);
+    } catch {
+      setBgError("Gagal mengupload gambar. Coba lagi.");
+      setBgUploading(false);
+    }
+
+    // Reset file input
+    if (bgFileRef.current) bgFileRef.current.value = "";
+  }, [toast]);
+
+  // Remove background image (revert to default)
+  const handleBgRemove = useCallback(() => {
+    setBgImage("/hero-bg.png");
+    saveHeroBg(null);
+    toast({ title: "Berhasil", description: "Gambar latar belakang dikembalikan ke default" });
+  }, [toast]);
+
   const handleScrollTo = (id: string) => {
     const el = document.querySelector(id);
     if (el) el.scrollIntoView({ behavior: "smooth" });
@@ -90,7 +175,7 @@ export default function HeroSection() {
       {/* Background Image */}
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-20 dark:opacity-30"
-        style={{ backgroundImage: "url(/hero-bg.png)" }}
+        style={{ backgroundImage: `url(${bgImage})` }}
       />
       {/* Gradient Overlays */}
       <div className="absolute inset-0 bg-gradient-to-b from-background/60 via-background/80 to-background" />
@@ -177,6 +262,53 @@ export default function HeroSection() {
             <DialogTitle>Edit Hero</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            {/* Background Image Upload */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Gambar Latar Belakang</label>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => bgFileRef.current?.click()}
+                  disabled={bgUploading}
+                  className="gap-1.5"
+                >
+                  {bgUploading ? (
+                    <Loader2 className="size-3.5 animate-spin" />
+                  ) : (
+                    <ImagePlus className="size-3.5" />
+                  )}
+                  {bgUploading ? "Mengupload..." : "Ganti Foto"}
+                </Button>
+                {bgImage !== "/hero-bg.png" && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleBgRemove}
+                    className="gap-1.5 text-destructive hover:text-destructive"
+                  >
+                    <Trash2 className="size-3.5" />
+                    Hapus
+                  </Button>
+                )}
+              </div>
+              <input
+                ref={bgFileRef}
+                type="file"
+                accept="image/png,image/jpeg,image/jpg,image/webp,image/svg+xml"
+                className="hidden"
+                onChange={handleBgUpload}
+              />
+              {bgError && (
+                <p className="text-xs text-destructive">{bgError}</p>
+              )}
+              <p className="text-xs text-muted-foreground">
+                Maks. 3MB. Format: PNG, JPG, WEBP, SVG.
+              </p>
+            </div>
+
             <div className="space-y-2">
               <label className="text-sm font-medium">Nama</label>
               <Input
