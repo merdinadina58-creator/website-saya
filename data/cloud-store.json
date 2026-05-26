@@ -1,52 +1,8 @@
 {
-  "content": {
-    "footer": {
-      "brandName": "David",
-      "brandAccent": "Sitinjak"
-    },
-    "contact": {
-      "subtitle": "Kontak",
-      "title": "Mari Berkolaborasi",
-      "description": "Punya proyek di pikiran atau sekadar ingin menyapa? Saya akan senang mendengar dari Anda. Mari ciptakan sesuatu yang luar biasa.",
-      "heading": "Hubungi Saya",
-      "infoText": "Baik Anda punya pertanyaan, ide kolaborasi, atau sekadar ingin terhubung — kotak masuk saya selalu terbuka. Saya berusaha merespons dalam 24 jam.",
-      "followLabel": "Ikuti Saya",
-      "items": [
-        {
-          "icon": "Mail",
-          "label": "Email",
-          "value": "sitinjakdavidj@gmail.com",
-          "href": "mailto:sitinjakdavidj@gmail.com"
-        },
-        {
-          "icon": "MapPin",
-          "label": "Lokasi",
-          "value": "Teluk Dalam, Indonesia",
-          "href": null
-        }
-      ],
-      "socials": [
-        {
-          "icon": "Github",
-          "label": "GitHub",
-          "url": "#"
-        },
-        {
-          "icon": "Linkedin",
-          "label": "LinkedIn",
-          "url": "#"
-        },
-        {
-          "icon": "Twitter",
-          "label": "Twitter",
-          "url": "#"
-        }
-      ]
-    }
-  },
+  "content": {},
+  "updatedAt": "2026-05-26T19:45:21.670Z",
   "credentials": {
-    "username": "admin",
-    "password": "admin123"
-  },
-  "updatedAt": "2026-05-26T19:44:47.570Z"
+    "username": "sitinjak",
+    "password": "sitinjak123"
+  }
 }
