@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db, isDbAvailable, markDbUnavailable } from "@/lib/db";
 import { verifyAdminFromHeader } from "@/lib/auth";
+import { readCloudData, writeCloudData, isCloudSyncAvailable } from "@/lib/cloud-store";
 
 export async function GET() {
+  // 1. Try database first
   try {
     if (await isDbAvailable()) {
       const record = await db.siteContent.findUnique({
@@ -15,6 +17,19 @@ export async function GET() {
   } catch {
     markDbUnavailable();
   }
+
+  // 2. Try cloud store as fallback (critical for Vercel where DB is ephemeral)
+  try {
+    if (isCloudSyncAvailable()) {
+      const cloudData = await readCloudData();
+      if (cloudData?.logo?.src) {
+        return NextResponse.json(cloudData.logo);
+      }
+    }
+  } catch {
+    // Cloud not available
+  }
+
   return NextResponse.json({ src: "/logo-512.png" });
 }
 
@@ -82,6 +97,23 @@ export async function POST(req: NextRequest) {
       markDbUnavailable();
     }
 
+    // Push to cloud immediately (ensures logo persists across Vercel redeployments)
+    let savedToCloud = false;
+    try {
+      if (isCloudSyncAvailable()) {
+        const cloudData = await readCloudData();
+        await writeCloudData({
+          content: cloudData?.content || {},
+          credentials: cloudData?.credentials,
+          logo: logoData,
+          updatedAt: new Date().toISOString(),
+        });
+        savedToCloud = true;
+      }
+    } catch {
+      // Cloud save failed — that's OK, client-side will try again via ContentProvider
+    }
+
     // Also try to save to public folder (works locally, silently fails on Vercel)
     try {
       const { writeFile, mkdir } = await import("fs/promises");
@@ -119,9 +151,12 @@ export async function POST(req: NextRequest) {
       success: true,
       logo: logoData,
       savedToDb,
+      savedToCloud,
       message: savedToDb
         ? "Logo berhasil diupload"
-        : "Logo diperbarui di browser (database tidak tersedia)",
+        : savedToCloud
+          ? "Logo disimpan ke cloud"
+          : "Logo diperbarui di browser (database dan cloud tidak tersedia)",
     });
   } catch (err) {
     console.error("Logo upload error:", err);

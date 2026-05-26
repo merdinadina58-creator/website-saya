@@ -87,7 +87,6 @@ function PasswordInput({
   value,
   onChange,
   onKeyDown,
-  autoComplete,
 }: {
   id: string;
   label: string;
@@ -95,7 +94,6 @@ function PasswordInput({
   value: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
-  autoComplete?: string;
 }) {
   const [show, setShow] = useState(false);
   return (
@@ -111,9 +109,10 @@ function PasswordInput({
           value={value}
           onChange={onChange}
           onKeyDown={onKeyDown}
-          autoComplete={autoComplete}
+          autoComplete="nope-acx7k-password"
           data-1p-ignore
           data-lpignore="true"
+          data-form-type="other"
           className="pr-10"
         />
         <button
@@ -1081,9 +1080,9 @@ export default function Navbar() {
             <p className="text-sm text-muted-foreground">
               Masukkan username dan password untuk mengakses fitur edit website.
             </p>
-            {/* Hidden decoy fields to trick browser autofill */}
-            <input type="text" name="username" style={{ display: "none" }} tabIndex={-1} autoComplete="username" />
-            <input type="password" name="password" style={{ display: "none" }} tabIndex={-1} autoComplete="current-password" />
+            {/* Hidden decoy fields to trap browser autofill */}
+            <input type="text" name="decoy-user" style={{ opacity: 0, height: 0, position: 'absolute', pointerEvents: 'none' }} tabIndex={-1} autoComplete="username" />
+            <input type="password" name="decoy-pass" style={{ opacity: 0, height: 0, position: 'absolute', pointerEvents: 'none' }} tabIndex={-1} autoComplete="current-password" />
             <div className="space-y-2">
               <label htmlFor="admin-username" className="text-sm font-medium">
                 Username
@@ -1099,7 +1098,8 @@ export default function Navbar() {
                 }}
                 readOnly
                 onFocus={(e) => { e.target.removeAttribute("readonly"); }}
-                autoComplete="off"
+                autoComplete="nope-z8m3-username"
+                name="field-x7k2"
                 data-1p-ignore
                 data-lpignore="true"
                 data-form-type="other"
@@ -1117,9 +1117,6 @@ export default function Navbar() {
               onKeyDown={(e) => {
                 if (e.key === "Enter") handleLogin();
               }}
-              autoComplete="new-password"
-              readOnly
-              onFocus={(e) => { e.target.removeAttribute("readonly"); }}
             />
             {loginError && (
               <p className="text-sm text-destructive">{loginError}</p>
@@ -1151,9 +1148,9 @@ export default function Navbar() {
             </DialogTitle>
           </DialogHeader>
           <form autoComplete="off" onSubmit={(e) => { e.preventDefault(); handleAccountSave(); }}>
-          {/* Hidden decoy fields to trick browser autofill */}
-          <input type="text" name="username" style={{ display: "none" }} tabIndex={-1} autoComplete="username" />
-          <input type="password" name="password" style={{ display: "none" }} tabIndex={-1} autoComplete="current-password" />
+          {/* Hidden decoy fields to trap browser autofill */}
+          <input type="text" name="decoy-user2" style={{ opacity: 0, height: 0, position: 'absolute', pointerEvents: 'none' }} tabIndex={-1} autoComplete="username" />
+          <input type="password" name="decoy-pass2" style={{ opacity: 0, height: 0, position: 'absolute', pointerEvents: 'none' }} tabIndex={-1} autoComplete="current-password" />
           <div className="space-y-6 py-4">
             {/* Current credentials */}
             <div className="rounded-lg border border-border p-4 space-y-4 bg-muted/30">
@@ -1180,7 +1177,8 @@ export default function Navbar() {
                     }}
                     readOnly
                     onFocus={(e) => { e.target.removeAttribute("readonly"); }}
-                    autoComplete="off"
+                    autoComplete="nope-q4w1-username"
+                    name="field-m9n3"
                     data-1p-ignore
                     data-lpignore="true"
                     data-form-type="other"
@@ -1196,9 +1194,6 @@ export default function Navbar() {
                     setAccountError("");
                     setAccountSuccess("");
                   }}
-                  autoComplete="new-password"
-                  readOnly
-                  onFocus={(e) => { e.target.removeAttribute("readonly"); }}
                 />
               </div>
             </div>
@@ -1230,7 +1225,8 @@ export default function Navbar() {
                   }}
                   readOnly
                   onFocus={(e) => { e.target.removeAttribute("readonly"); }}
-                  autoComplete="off"
+                  autoComplete="nope-j5k8-newusername"
+                  name="field-p2r4"
                   data-1p-ignore
                   data-lpignore="true"
                 />
@@ -1246,9 +1242,6 @@ export default function Navbar() {
                   setAccountError("");
                   setAccountSuccess("");
                 }}
-                autoComplete="new-password"
-                readOnly
-                onFocus={(e) => { e.target.removeAttribute("readonly"); }}
               />
 
               {accountNewPassword && (
@@ -1265,9 +1258,6 @@ export default function Navbar() {
                   onKeyDown={(e) => {
                     if (e.key === "Enter") handleAccountSave();
                   }}
-                  autoComplete="new-password"
-                  readOnly
-                  onFocus={(e) => { e.target.removeAttribute("readonly"); }}
                 />
               )}
             </div>

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db, isDbAvailable, markDbUnavailable } from "@/lib/db";
+import { readCloudData, isCloudSyncAvailable } from "@/lib/cloud-store";
 import { readFile } from "fs/promises";
 import { join } from "path";
 
@@ -28,24 +29,43 @@ async function serveStaticFavicon() {
   }
 }
 
+/** Get logo data URL from DB or cloud store (fallback for Vercel where DB is ephemeral) */
+async function getLogoDataUrl(): Promise<string | null> {
+  // 1. Try database first
+  try {
+    if (await isDbAvailable()) {
+      const record = await db.siteContent.findUnique({
+        where: { key: "_logo" },
+      });
+      if (record) {
+        const logoData = JSON.parse(record.value);
+        if (logoData.src?.startsWith("data:")) return logoData.src;
+      }
+    }
+  } catch {
+    markDbUnavailable();
+  }
+
+  // 2. Try cloud store (persists across Vercel redeployments)
+  try {
+    if (isCloudSyncAvailable()) {
+      const cloudData = await readCloudData();
+      if (cloudData?.logo?.src?.startsWith("data:")) {
+        return cloudData.logo.src;
+      }
+    }
+  } catch {
+    // Cloud not available
+  }
+
+  return null;
+}
+
 export async function GET(req: NextRequest) {
   try {
-    if (!(await isDbAvailable())) {
-      return await serveStaticFavicon();
-    }
+    const dataUrl = await getLogoDataUrl();
 
-    const record = await db.siteContent.findUnique({
-      where: { key: "_logo" },
-    });
-
-    if (!record) {
-      return await serveStaticFavicon();
-    }
-
-    const logoData = JSON.parse(record.value);
-    const dataUrl: string = logoData.src || "";
-
-    if (!dataUrl.startsWith("data:")) {
+    if (!dataUrl) {
       return await serveStaticFavicon();
     }
 
@@ -83,7 +103,6 @@ export async function GET(req: NextRequest) {
       });
     }
   } catch {
-    markDbUnavailable();
     return await serveStaticFavicon();
   }
 }
