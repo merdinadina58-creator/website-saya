@@ -4,6 +4,7 @@ import {
   createContext,
   useContext,
   useCallback,
+  useEffect,
   useSyncExternalStore,
   type ReactNode,
 } from "react";
@@ -24,6 +25,12 @@ export function useAdmin() {
   return ctx;
 }
 
+// ── localStorage keys ──
+const LS_ADMIN_KEY = "isAdmin";
+const LS_USERNAME_KEY = "adminUsername";
+const LS_PASSWORD_KEY = "adminPassword";
+const LS_CLOUD_CREDS_KEY = "cloudCredentials";
+
 // ── Custom event for admin state changes ──
 const ADMIN_CHANGE_EVENT = "admin-state-change";
 
@@ -37,7 +44,7 @@ function subscribeToAdmin(callback: () => void) {
 }
 
 function getAdminSnapshot(): boolean {
-  return localStorage.getItem("isAdmin") === "true";
+  return localStorage.getItem(LS_ADMIN_KEY) === "true";
 }
 
 function getAdminServerSnapshot(): boolean {
@@ -45,7 +52,7 @@ function getAdminServerSnapshot(): boolean {
 }
 
 function getAdminUsernameSnapshot(): string {
-  return localStorage.getItem("adminUsername") || "";
+  return localStorage.getItem(LS_USERNAME_KEY) || "";
 }
 
 function getAdminUsernameServerSnapshot(): string {
@@ -54,6 +61,26 @@ function getAdminUsernameServerSnapshot(): string {
 
 function notifyAdminChange() {
   window.dispatchEvent(new Event(ADMIN_CHANGE_EVENT));
+}
+
+/** Read cloud-synced credentials from localStorage (updated by ContentProvider) */
+function getCloudCredentials(): { username: string; password: string } | null {
+  try {
+    const stored = localStorage.getItem(LS_CLOUD_CREDS_KEY);
+    if (stored) return JSON.parse(stored);
+  } catch {
+    // Invalid JSON
+  }
+  return null;
+}
+
+/** Save cloud-synced credentials to localStorage */
+function saveCloudCredentials(credentials: { username: string; password: string }) {
+  try {
+    localStorage.setItem(LS_CLOUD_CREDS_KEY, JSON.stringify(credentials));
+  } catch {
+    // localStorage full
+  }
 }
 
 export function AdminProvider({ children }: { children: ReactNode }) {
@@ -70,8 +97,52 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     getAdminUsernameServerSnapshot
   );
 
+  // Fetch cloud credentials on mount and store them locally
+  useEffect(() => {
+    async function fetchCloudCreds() {
+      try {
+        const res = await fetch("/api/sync");
+        if (res.ok) {
+          const data = await res.json();
+          if (data.available && data.data?.credentials) {
+            saveCloudCredentials(data.data.credentials);
+            // If user is already logged in, update their stored credentials
+            const currentUsername = localStorage.getItem(LS_USERNAME_KEY);
+            if (currentUsername === data.data.credentials.username) {
+              localStorage.setItem(LS_PASSWORD_KEY, data.data.credentials.password);
+              notifyAdminChange();
+            }
+          }
+        }
+      } catch {
+        // Cloud not available
+      }
+    }
+    fetchCloudCreds();
+  }, []);
+
   const login = useCallback(
     async (username: string, password: string): Promise<boolean> => {
+      // Fast path: check localStorage credentials first (includes cloud-synced credentials)
+      const storedUsername = localStorage.getItem(LS_USERNAME_KEY);
+      const storedPassword = localStorage.getItem(LS_PASSWORD_KEY);
+      if (storedUsername && storedPassword && username === storedUsername && password === storedPassword) {
+        localStorage.setItem(LS_ADMIN_KEY, "true");
+        notifyAdminChange();
+        return true;
+      }
+
+      // Check cloud-synced credentials from localStorage
+      const cloudCreds = getCloudCredentials();
+      if (cloudCreds && username === cloudCreds.username && password === cloudCreds.password) {
+        localStorage.setItem(LS_ADMIN_KEY, "true");
+        localStorage.setItem(LS_USERNAME_KEY, username);
+        localStorage.setItem(LS_PASSWORD_KEY, password);
+        notifyAdminChange();
+        return true;
+      }
+
+      // Then try API (checks default + cloud + DB credentials)
       try {
         const res = await fetch("/api/auth/login", {
           method: "POST",
@@ -79,9 +150,9 @@ export function AdminProvider({ children }: { children: ReactNode }) {
           body: JSON.stringify({ username, password }),
         });
         if (res.ok) {
-          localStorage.setItem("isAdmin", "true");
-          localStorage.setItem("adminUsername", username);
-          localStorage.setItem("adminPassword", password);
+          localStorage.setItem(LS_ADMIN_KEY, "true");
+          localStorage.setItem(LS_USERNAME_KEY, username);
+          localStorage.setItem(LS_PASSWORD_KEY, password);
           notifyAdminChange();
           return true;
         }
@@ -94,16 +165,16 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   );
 
   const logout = useCallback(() => {
-    localStorage.removeItem("isAdmin");
-    localStorage.removeItem("adminUsername");
-    localStorage.removeItem("adminPassword");
+    localStorage.removeItem(LS_ADMIN_KEY);
+    localStorage.removeItem(LS_USERNAME_KEY);
+    localStorage.removeItem(LS_PASSWORD_KEY);
     notifyAdminChange();
   }, []);
 
   const getAuthHeaders = useCallback((): Record<string, string> => {
     if (typeof window === "undefined") return {};
-    const username = localStorage.getItem("adminUsername");
-    const password = localStorage.getItem("adminPassword");
+    const username = localStorage.getItem(LS_USERNAME_KEY);
+    const password = localStorage.getItem(LS_PASSWORD_KEY);
     if (!username || !password) return {};
     return { "x-admin-username": username, "x-admin-password": password };
   }, []);

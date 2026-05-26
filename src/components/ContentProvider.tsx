@@ -6,6 +6,7 @@ import {
   useState,
   useEffect,
   useCallback,
+  useRef,
   type ReactNode,
 } from "react";
 
@@ -26,6 +27,7 @@ interface ContentContextType {
   loading: boolean;
   updateContent: (key: string, value: unknown) => Promise<void>;
   refreshContent: () => Promise<void>;
+  syncStatus: "idle" | "syncing" | "synced" | "error" | "unavailable";
 }
 
 const ContentContext = createContext<ContentContextType | null>(null);
@@ -93,31 +95,130 @@ function saveToLocalStorage(content: ContentData) {
 export function ContentProvider({ children }: { children: ReactNode }) {
   const [content, setContent] = useState<ContentData>({});
   const [loading, setLoading] = useState(true);
+  const [syncStatus, setSyncStatus] = useState<ContentContextType["syncStatus"]>("idle");
+  const cloudSyncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Push content to cloud (debounced)
+  const pushToCloud = useCallback(async (data: ContentData) => {
+    try {
+      setSyncStatus("syncing");
+
+      // Get current credentials from localStorage
+      const username = localStorage.getItem("adminUsername") || "admin";
+      const password = localStorage.getItem("adminPassword") || "admin123";
+
+      // Get current logo from localStorage
+      let logo: Record<string, unknown> | undefined;
+      try {
+        const logoData = localStorage.getItem("website-logo");
+        if (logoData) logo = JSON.parse(logoData);
+      } catch {}
+
+      const res = await fetch("/api/sync", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...getAuthHeaders(),
+        },
+        body: JSON.stringify({
+          content: data,
+          credentials: { username, password },
+          logo,
+        }),
+      });
+
+      if (res.ok) {
+        const result = await res.json();
+        if (result.success) {
+          setSyncStatus("synced");
+        } else {
+          setSyncStatus(result.error === "Cloud sync tidak tersedia" ? "unavailable" : "error");
+        }
+      } else if (res.status === 401) {
+        setSyncStatus("error");
+      } else {
+        setSyncStatus("unavailable");
+      }
+    } catch {
+      setSyncStatus("unavailable");
+    }
+  }, []);
+
+  // Debounced cloud push — wait 3 seconds after last change before pushing
+  const scheduleCloudPush = useCallback((data: ContentData) => {
+    if (cloudSyncTimerRef.current) {
+      clearTimeout(cloudSyncTimerRef.current);
+    }
+    cloudSyncTimerRef.current = setTimeout(() => {
+      pushToCloud(data);
+    }, 3000);
+  }, [pushToCloud]);
 
   const refreshContent = useCallback(async () => {
     try {
-      const res = await fetch("/api/content");
-      if (res.ok) {
-        const data = await res.json();
-        // Deep merge: API data takes priority but doesn't lose nested fields from localStorage
-        const localData = loadFromLocalStorage();
-        const merged = deepMergeContent(localData, data);
-        setContent(merged);
-        saveToLocalStorage(merged);
-      } else {
-        // API failed (e.g., Vercel serverless DB unavailable)
-        // Fall back to localStorage
-        const localData = loadFromLocalStorage();
-        if (Object.keys(localData).length > 0) {
-          setContent(localData);
+      // 1. Read from localStorage (immediate)
+      const localData = loadFromLocalStorage();
+
+      // 2. Fetch from database API
+      let apiData: ContentData = {};
+      try {
+        const res = await fetch("/api/content");
+        if (res.ok) {
+          apiData = await res.json();
         }
+      } catch {}
+
+      // 3. Fetch from cloud (GitHub Gist)
+      let cloudData: ContentData = {};
+      let cloudCredentials: { username: string; password: string } | null = null;
+      let cloudAvailable = false;
+      try {
+        const res = await fetch("/api/sync");
+        if (res.ok) {
+          const data = await res.json();
+          if (data.available) {
+            cloudAvailable = true;
+            if (data.data) {
+              cloudData = data.data.content || {};
+              cloudCredentials = data.data.credentials || null;
+
+              // Save cloud logo to localStorage if available
+              if (data.data.logo?.src) {
+                try {
+                  localStorage.setItem("website-logo", JSON.stringify(data.data.logo));
+                } catch {}
+              }
+            }
+          }
+        }
+      } catch {}
+
+      // 4. Merge: localStorage + API + cloud (cloud wins for conflicts)
+      let merged = deepMergeContent(localData, apiData);
+      if (Object.keys(cloudData).length > 0) {
+        merged = deepMergeContent(merged, cloudData);
       }
+
+      // 5. Save merged data
+      setContent(merged);
+      saveToLocalStorage(merged);
+
+      // 6. Save cloud credentials to localStorage for AdminProvider
+      if (cloudCredentials) {
+        try {
+          localStorage.setItem("cloudCredentials", JSON.stringify(cloudCredentials));
+        } catch {}
+      }
+
+      // 7. Set sync status
+      setSyncStatus(cloudAvailable ? "synced" : "unavailable");
     } catch {
-      // Network error — use localStorage fallback
+      // Fallback to localStorage only
       const localData = loadFromLocalStorage();
       if (Object.keys(localData).length > 0) {
         setContent(localData);
       }
+      setSyncStatus("error");
     } finally {
       setLoading(false);
     }
@@ -134,6 +235,9 @@ export function ContentProvider({ children }: { children: ReactNode }) {
       const updatedContent = { ...content, [key]: value };
       setContent(updatedContent);
       saveToLocalStorage(updatedContent);
+
+      // Schedule cloud push (debounced)
+      scheduleCloudPush(updatedContent);
 
       // Then try to persist to database (non-blocking — don't fail the edit if DB is down)
       try {
@@ -163,12 +267,12 @@ export function ContentProvider({ children }: { children: ReactNode }) {
         // Network errors / API errors — content is still saved in localStorage, that's fine
       }
     },
-    [content]
+    [content, scheduleCloudPush]
   );
 
   return (
     <ContentContext.Provider
-      value={{ content, loading, updateContent, refreshContent }}
+      value={{ content, loading, updateContent, refreshContent, syncStatus }}
     >
       {children}
     </ContentContext.Provider>

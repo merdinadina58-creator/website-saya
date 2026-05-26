@@ -10,6 +10,7 @@ import ContactSection from "@/components/ContactSection";
 import FooterSection from "@/components/FooterSection";
 import AdminToolbar from "@/components/AdminToolbar";
 import DynamicTitle from "@/components/DynamicTitle";
+import SyncIndicator from "@/components/SyncIndicator";
 
 export default function Home() {
   return (
@@ -28,6 +29,7 @@ export default function Home() {
             <FooterSection />
           </footer>
           <AdminToolbar />
+          <SyncIndicator />
         </div>
       </ContentProvider>
     </AdminProvider>

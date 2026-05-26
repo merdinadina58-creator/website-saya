@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { DEFAULT_USERNAME, DEFAULT_PASSWORD } from "@/lib/auth";
+import { getCloudCredentials } from "@/lib/cloud-store";
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,13 +15,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Always check default credentials first — this guarantees login works on Vercel/serverless
-    // where SQLite database may not be persistent
+    // 1. Always check default credentials first — ensures login works on Vercel/serverless
     if (username === DEFAULT_USERNAME && password === DEFAULT_PASSWORD) {
       return NextResponse.json({ success: true });
     }
 
-    // Then try database credentials (in case admin changed their password)
+    // 2. Check cloud credentials (from GitHub Gist — persists across deployments)
+    try {
+      const cloudCreds = await getCloudCredentials();
+      if (cloudCreds && username === cloudCreds.username && password === cloudCreds.password) {
+        return NextResponse.json({ success: true });
+      }
+    } catch {
+      // Cloud credentials not available
+    }
+
+    // 3. Try database credentials (in case admin changed their password locally)
     try {
       const { verifyCredentials } = await import("@/lib/auth");
       const { isDbAvailable } = await import("@/lib/db");

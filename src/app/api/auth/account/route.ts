@@ -7,6 +7,7 @@ import {
   DEFAULT_PASSWORD,
 } from "@/lib/auth";
 import { isDbAvailable, markDbUnavailable } from "@/lib/db";
+import { readCloudData, writeCloudData } from "@/lib/cloud-store";
 
 export async function PUT(request: NextRequest) {
   try {
@@ -20,12 +21,25 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // Verify current credentials — check default first, then database
+    // Verify current credentials — check default first, then cloud, then database
     let isValid = false;
 
     // Check default credentials (always works on Vercel)
     if (currentUsername === DEFAULT_USERNAME && currentPassword === DEFAULT_PASSWORD) {
       isValid = true;
+    }
+
+    // Check cloud credentials
+    if (!isValid) {
+      try {
+        const { getCloudCredentials } = await import("@/lib/cloud-store");
+        const cloudCreds = await getCloudCredentials();
+        if (cloudCreds && currentUsername === cloudCreds.username && currentPassword === cloudCreds.password) {
+          isValid = true;
+        }
+      } catch {
+        // Cloud not available
+      }
     }
 
     // Also check database if available
@@ -46,22 +60,33 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // Try to save to database
+    const finalUsername = newUsername ? newUsername.trim() : currentUsername;
+    const finalPassword = newPassword || currentPassword;
+
+    // Validate new password length
+    if (newPassword && newPassword.length < 4) {
+      return NextResponse.json(
+        { error: "Password baru minimal 4 karakter" },
+        { status: 400 }
+      );
+    }
+
+    // Validate new username length
+    if (newUsername && newUsername.trim().length < 2) {
+      return NextResponse.json(
+        { error: "Username baru minimal 2 karakter" },
+        { status: 400 }
+      );
+    }
+
+    // 1. Try to save to database
     let savedToDb = false;
     try {
       if (await isDbAvailable()) {
-        // Update username if provided and different
         if (newUsername && newUsername.trim().length >= 2) {
           await setAdminUsername(newUsername.trim());
         }
-        // Update password if provided
         if (newPassword) {
-          if (newPassword.length < 4) {
-            return NextResponse.json(
-              { error: "Password baru minimal 4 karakter" },
-              { status: 400 }
-            );
-          }
           await setAdminPassword(newPassword);
         }
         savedToDb = true;
@@ -70,15 +95,36 @@ export async function PUT(request: NextRequest) {
       markDbUnavailable();
     }
 
-    // If DB not available, return success anyway — frontend saves to localStorage
-    const finalUsername = newUsername ? newUsername.trim() : currentUsername;
+    // 2. Save to cloud (GitHub Gist) — persists across deployments
+    let savedToCloud = false;
+    try {
+      const existingCloud = await readCloudData();
+      const cloudData = existingCloud || {
+        content: {},
+        updatedAt: new Date().toISOString(),
+      };
+
+      cloudData.credentials = {
+        username: finalUsername,
+        password: finalPassword,
+      };
+      cloudData.updatedAt = new Date().toISOString();
+
+      savedToCloud = await writeCloudData(cloudData);
+    } catch {
+      // Cloud save failed — non-critical
+    }
+
     return NextResponse.json({
       success: true,
       username: finalUsername,
       savedToDb,
-      message: savedToDb
-        ? "Akun berhasil diperbarui"
-        : "Akun diperbarui di browser (database tidak tersedia)",
+      savedToCloud,
+      message: savedToCloud
+        ? "Akun berhasil diperbarui (cloud)"
+        : savedToDb
+          ? "Akun berhasil diperbarui (database)"
+          : "Akun diperbarui di browser saja",
     });
   } catch {
     return NextResponse.json(

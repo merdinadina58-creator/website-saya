@@ -54,12 +54,23 @@ export async function verifyAdminFromHeader(
   const password = request.headers.get("x-admin-password");
   if (!username || !password) return false;
 
-  // Always check default credentials first — ensures auth works on Vercel/serverless
+  // 1. Always check default credentials first — ensures auth works on Vercel/serverless
   if (username === DEFAULT_USERNAME && password === DEFAULT_PASSWORD) {
     return true;
   }
 
-  // Then try database credentials (in case admin changed their password)
+  // 2. Check cloud credentials (from GitHub Gist — persists across deployments)
+  try {
+    const { getCloudCredentials } = await import("@/lib/cloud-store");
+    const cloudCreds = await getCloudCredentials();
+    if (cloudCreds && username === cloudCreds.username && password === cloudCreds.password) {
+      return true;
+    }
+  } catch {
+    // Cloud not available
+  }
+
+  // 3. Try database credentials (in case admin changed their password locally)
   try {
     const isValid = await verifyCredentials(username, password);
     if (isValid) return true;
