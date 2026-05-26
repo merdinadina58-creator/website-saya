@@ -209,8 +209,7 @@ export default function Navbar() {
 
       // Update PWA manifest dynamically
       try {
-        const hero = content.hero as { name?: string } | undefined;
-        const siteName = hero?.name || "Website Saya";
+        const siteName = document.title || "Website Saya";
         const manifest = {
           name: siteName,
           short_name: siteName.split(" ")[0] || "WebsiteSaya",
@@ -237,7 +236,7 @@ export default function Navbar() {
     } catch {
       // Favicon update is non-critical, ignore errors
     }
-  }, [content.hero]);
+  }, []);
 
   // Admin state
   const { isAdmin, adminUsername, login, logout, getAuthHeaders } = useAdmin();
