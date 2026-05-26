@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db, isDbAvailable, markDbUnavailable } from "@/lib/db";
 import { verifyAdminFromHeader } from "@/lib/auth";
-import { readCloudData, writeCloudData, isCloudSyncAvailable } from "@/lib/cloud-store";
+import { readCloudData, writeCloudData, isCloudSyncAvailable, pushStaticFileToGitHub } from "@/lib/cloud-store";
 
 export async function GET() {
   // 1. Try database first
@@ -18,7 +18,7 @@ export async function GET() {
     markDbUnavailable();
   }
 
-  // 2. Try cloud store as fallback (critical for Vercel where DB is ephemeral)
+  // 2. Try cloud store as fallback
   try {
     if (isCloudSyncAvailable()) {
       const cloudData = await readCloudData();
@@ -35,7 +35,7 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
-    // Auth check — always verify first (works on Vercel via default credentials)
+    // Auth check
     if (!(await verifyAdminFromHeader(req))) {
       return NextResponse.json(
         { error: "Tidak memiliki akses. Silakan login terlebih dahulu." },
@@ -97,7 +97,7 @@ export async function POST(req: NextRequest) {
       markDbUnavailable();
     }
 
-    // Push to cloud immediately (ensures logo persists across Vercel redeployments)
+    // Push to cloud immediately
     let savedToCloud = false;
     try {
       if (isCloudSyncAvailable()) {
@@ -106,45 +106,74 @@ export async function POST(req: NextRequest) {
           content: cloudData?.content || {},
           credentials: cloudData?.credentials,
           logo: logoData,
+          aboutPhoto: cloudData?.aboutPhoto,
+          heroBg: cloudData?.heroBg,
           updatedAt: new Date().toISOString(),
         });
         savedToCloud = true;
       }
     } catch {
-      // Cloud save failed — that's OK, client-side will try again via ContentProvider
+      // Cloud save failed — that's OK
     }
 
-    // Also try to save to public folder (works locally, silently fails on Vercel)
+    // Push static icon files to GitHub repo
+    // This is CRITICAL for PWA — Chrome needs static files for WebAPK creation
+    // Static files are always fast and reliable, unlike serverless API routes
+    let pushedStaticIcons = false;
     try {
-      const { writeFile, mkdir } = await import("fs/promises");
-      const path = await import("path");
-      const PUBLIC_DIR = path.join(process.cwd(), "public");
-
-      await mkdir(PUBLIC_DIR, { recursive: true });
-
-      const ext = file.type === "image/svg+xml" ? "svg" : file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "jpg";
-      const logoFilename = `logo-uploaded.${ext}`;
-      await writeFile(path.join(PUBLIC_DIR, logoFilename), buffer);
-
-      // Try to generate PWA icons with sharp
-      try {
+      if (isCloudSyncAvailable() && file.type !== "image/svg+xml") {
         const sharp = (await import("sharp")).default;
-        if (ext !== "svg") {
-          await sharp(buffer)
-            .resize(192, 192, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } })
-            .png()
-            .toFile(path.join(PUBLIC_DIR, "logo-192.png"));
 
-          await sharp(buffer)
-            .resize(512, 512, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } })
-            .png()
-            .toFile(path.join(PUBLIC_DIR, "logo-512.png"));
-        }
-      } catch {
-        // Sharp might fail on some environments, that's OK
+        // Generate regular icons (transparent background)
+        const icon192 = await sharp(buffer)
+          .resize(192, 192, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } })
+          .png()
+          .toBuffer();
+
+        const icon512 = await sharp(buffer)
+          .resize(512, 512, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } })
+          .png()
+          .toBuffer();
+
+        // Generate maskable icons (logo centered at 80%, solid dark background)
+        const logoSize192 = Math.round(192 * 0.8);
+        const padding192 = Math.round(192 * 0.1);
+        const resized192 = await sharp(buffer)
+          .resize(logoSize192, logoSize192, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } })
+          .png()
+          .toBuffer();
+        const maskable192 = await sharp({
+          create: { width: 192, height: 192, channels: 4, background: { r: 10, g: 10, b: 10, alpha: 1 } },
+        })
+          .composite([{ input: resized192, left: padding192, top: padding192 }])
+          .png()
+          .toBuffer();
+
+        const logoSize512 = Math.round(512 * 0.8);
+        const padding512 = Math.round(512 * 0.1);
+        const resized512 = await sharp(buffer)
+          .resize(logoSize512, logoSize512, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } })
+          .png()
+          .toBuffer();
+        const maskable512 = await sharp({
+          create: { width: 512, height: 512, channels: 4, background: { r: 10, g: 10, b: 10, alpha: 1 } },
+        })
+          .composite([{ input: resized512, left: padding512, top: padding512 }])
+          .png()
+          .toBuffer();
+
+        // Push all 4 icon files to GitHub
+        const results = await Promise.allSettled([
+          pushStaticFileToGitHub("public/logo-192.png", icon192, "chore: update PWA icon 192px"),
+          pushStaticFileToGitHub("public/logo-512.png", icon512, "chore: update PWA icon 512px"),
+          pushStaticFileToGitHub("public/logo-192-maskable.png", maskable192, "chore: update PWA maskable icon 192px"),
+          pushStaticFileToGitHub("public/logo-512-maskable.png", maskable512, "chore: update PWA maskable icon 512px"),
+        ]);
+
+        pushedStaticIcons = results.some(r => r.status === "fulfilled" && r.value === true);
       }
     } catch {
-      // Writing to public/ might fail on Vercel (read-only), that's OK
+      // Sharp or GitHub push failed — icons still available via API route
     }
 
     return NextResponse.json({
@@ -152,11 +181,14 @@ export async function POST(req: NextRequest) {
       logo: logoData,
       savedToDb,
       savedToCloud,
-      message: savedToDb
-        ? "Logo berhasil diupload"
-        : savedToCloud
-          ? "Logo disimpan ke cloud"
-          : "Logo diperbarui di browser (database dan cloud tidak tersedia)",
+      pushedStaticIcons,
+      message: pushedStaticIcons
+        ? "Logo berhasil diupload dan ikon PWA diperbarui (rebuild otomatis)"
+        : savedToDb
+          ? "Logo berhasil diupload"
+          : savedToCloud
+            ? "Logo disimpan ke cloud"
+            : "Logo diperbarui di browser (database dan cloud tidak tersedia)",
     });
   } catch (err) {
     console.error("Logo upload error:", err);

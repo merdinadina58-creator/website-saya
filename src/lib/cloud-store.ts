@@ -245,3 +245,70 @@ export async function getCloudCredentials(): Promise<CloudCredentials | null> {
   if (!data) return null;
   return data.credentials ?? null;
 }
+
+/**
+ * Push a static file to the GitHub repository.
+ * Used for pushing PWA icon files (logo-192.png, logo-512.png, etc.)
+ * so they're served as static files (fast, reliable, no serverless function needed).
+ * This triggers a Vercel redeployment.
+ *
+ * Returns `true` on success, `false` on any failure.
+ */
+export async function pushStaticFileToGitHub(
+  filePath: string,
+  content: Buffer,
+  commitMessage: string
+): Promise<boolean> {
+  const repo = getGithubRepo();
+  const token = getGithubToken();
+  if (!repo || !token) return false;
+
+  try {
+    // Get current file SHA (needed for update)
+    let sha: string | null = null;
+    try {
+      const res = await fetch(
+        `${GITHUB_API_BASE}/repos/${repo}/contents/${filePath}`,
+        { headers: headers() }
+      );
+      if (res.ok) {
+        const data = await res.json();
+        sha = data.sha || null;
+      }
+    } catch {
+      // File doesn't exist yet — that's OK, we'll create it
+    }
+
+    const payload: Record<string, unknown> = {
+      message: commitMessage,
+      content: content.toString("base64"),
+    };
+
+    if (sha) {
+      payload.sha = sha;
+    }
+
+    const res = await fetch(
+      `${GITHUB_API_BASE}/repos/${repo}/contents/${filePath}`,
+      {
+        method: "PUT",
+        headers: headers(),
+        body: JSON.stringify(payload),
+      }
+    );
+
+    if (!res.ok) {
+      const body = await res.text();
+      console.error(
+        `[cloud-store] Failed to push ${filePath}: ${res.status}`,
+        body.substring(0, 200)
+      );
+      return false;
+    }
+
+    return true;
+  } catch (err) {
+    console.error(`[cloud-store] Error pushing ${filePath}:`, err);
+    return false;
+  }
+}
