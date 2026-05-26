@@ -137,6 +137,22 @@ export default function Navbar() {
   // localStorage key for logo persistence (fallback on Vercel/serverless)
   const LOGO_LS_KEY = "website-logo";
 
+  // Send logo and name data to Service Worker for PWA manifest/icon
+  const sendPwaDataToServiceWorker = useCallback((logoSrc: string, siteName: string) => {
+    try {
+      if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({
+          type: "STORE_PWA_DATA",
+          logoSrc,
+          siteName,
+          siteShortName: siteName.split(" ")[0] || "WebsiteSaya",
+        });
+      }
+    } catch {
+      // Service worker not available
+    }
+  }, []);
+
   // Save logo data to localStorage
   const saveLogoToLocalStorage = useCallback((logoData: { src: string; uploadedAt?: string; originalName?: string; size?: number; mimeType?: string }) => {
     try {
@@ -258,12 +274,20 @@ export default function Navbar() {
 
   // Fetch current logo — check localStorage first, then API
   useEffect(() => {
+    // Get current site name for PWA
+    const currentSiteName = hero?.name || "Website Saya";
+
     // First check localStorage for logo (works on Vercel where DB is ephemeral)
     const localLogo = loadLogoFromLocalStorage();
     if (localLogo?.src) {
       setLogoSrc(localLogo.src);
       // Also update favicon immediately from localStorage
       updateFavicon(localLogo.src);
+      // Send to Service Worker for PWA manifest
+      sendPwaDataToServiceWorker(localLogo.src, currentSiteName);
+    } else {
+      // No custom logo — still send name to SW
+      sendPwaDataToServiceWorker("", currentSiteName);
     }
 
     // Then try API (DB might have newer data on local server)
@@ -278,6 +302,7 @@ export default function Navbar() {
           setLogoSrc(data.src);
           saveLogoToLocalStorage(data);
           updateFavicon(data.src);
+          sendPwaDataToServiceWorker(data.src, currentSiteName);
         } else if (!localLogo?.src) {
           // No localStorage data and API returned default — show default
           setLogoSrc("/logo-512.png");
@@ -288,7 +313,7 @@ export default function Navbar() {
       .catch(() => {
         // API failed — localStorage data (if any) is already set above
       });
-  }, [loadLogoFromLocalStorage, saveLogoToLocalStorage, updateFavicon]);
+  }, [loadLogoFromLocalStorage, saveLogoToLocalStorage, updateFavicon, sendPwaDataToServiceWorker, hero?.name]);
 
   // Logo upload handler
   const handleLogoUpload = useCallback(
@@ -346,6 +371,9 @@ export default function Navbar() {
           }
           // Update browser favicon dynamically
           updateFavicon(newSrc);
+          // Send to Service Worker for PWA manifest/icon
+          const siteName = hero?.name || "Website Saya";
+          sendPwaDataToServiceWorker(newSrc, siteName);
           setLogoDialogOpen(false);
         } else {
           setLogoError(data.error || "Gagal mengupload logo");
@@ -366,6 +394,8 @@ export default function Navbar() {
             });
             setLogoSrc(dataUrl);
             updateFavicon(dataUrl);
+            const siteName = hero?.name || "Website Saya";
+            sendPwaDataToServiceWorker(dataUrl, siteName);
             setLogoDialogOpen(false);
           };
           reader.readAsDataURL(file);
@@ -378,7 +408,7 @@ export default function Navbar() {
         if (fileInputRef.current) fileInputRef.current.value = "";
       }
     },
-    [getAuthHeaders, saveLogoToLocalStorage, updateFavicon]
+    [getAuthHeaders, saveLogoToLocalStorage, updateFavicon, sendPwaDataToServiceWorker, hero?.name]
   );
 
   const handleAddApp = useCallback(async () => {
