@@ -100,3 +100,23 @@ Stage Summary:
 - Cross-device sync enabled via GitHub Contents API (GITHUB_TOKEN + GITHUB_REPO configured)
 - Security: GET /api/sync no longer leaks credentials to unauthenticated users
 - Vercel needs GITHUB_TOKEN and GITHUB_REPO environment variables to be set in dashboard
+
+---
+Task ID: 1
+Agent: Main
+Task: Add cloud store fallback for favicon/PWA icon APIs + fix autofill
+
+Work Log:
+- Added cloud store fallback to /api/favicon, /api/logo-icon, /api/manifest routes
+- These routes now check DB first, then cloud store (GitHub), then serve static fallback
+- Critical for Vercel where DB is ephemeral — custom logo persists as favicon/PWA icon
+- Updated /api/logo GET to also check cloud store for logo data
+- Updated /api/logo POST to immediately push logo to cloud on upload
+- Fixed autofill: used random autoComplete values (nope-z8m3-username, nope-acx7k-password), random name attributes (field-x7k2, field-m9n3), invisible decoy fields instead of display:none, removed autoComplete prop from PasswordInput in favor of built-in value
+- All changes tested and working locally
+- Pushed to GitHub: e04f4a3
+
+Stage Summary:
+- Logo upload → favicon + PWA icon flow now works end-to-end even on Vercel
+- Cloud store fallback ensures custom logo survives Vercel redeployments
+- Autofill prevention significantly improved with non-standard autocomplete values
